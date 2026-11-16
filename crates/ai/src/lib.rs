@@ -8,7 +8,13 @@
 pub mod context;
 pub mod error;
 pub mod prompt;
+pub mod provider;
+#[cfg(not(target_arch = "wasm32"))]
+pub mod run;
 
 pub use context::{MAX_SENTENCE, is_definable, sentence_around};
 pub use error::AiError;
 pub use prompt::{Request, prompt, split_command_line, tidy_answer};
+pub use provider::{Invocation, ProviderConfig, ProviderKind, TIMEOUT, invocation};
+#[cfg(not(target_arch = "wasm32"))]
+pub use run::run;
