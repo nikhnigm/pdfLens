@@ -927,10 +927,7 @@ fn card_ai(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, ctx: &mut PrefS
         let mut kind = app.ai.provider.kind;
         let options = [(ProviderKind::Claude, "Claude"), (ProviderKind::Codex, "Codex"), (ProviderKind::Custom, tl!("Custom"))];
         if ctx.pill_choice(ui, t, &mut kind, &options) {
-            app.ai.provider.kind = kind;
-            if kind == ProviderKind::Claude && app.ai.provider.model.trim().is_empty() {
-                app.ai.provider.model = "haiku".into();
-            }
+            app.ai.set_provider_kind(kind);
         }
     });
     let field = |ui: &mut egui::Ui, ctx: &mut PrefSearchContext, label: &str, text: &mut String, hint: &str| {

@@ -43,7 +43,11 @@ fn ai_prefs_ignore_damaged_values() {
 
 /// One 300×400 page with a line of Helvetica text at (40, 150).
 fn fixture() -> Vec<u8> {
-    let body = "BT /F1 14 Tf 40 150 Td (It was an ephemeral joy. Then it was gone.) Tj ET";
+    fixture_with("BT /F1 14 Tf 40 150 Td (It was an ephemeral joy. Then it was gone.) Tj ET")
+}
+
+/// One 300×400 page drawing `body` with Helvetica as /F1.
+fn fixture_with(body: &str) -> Vec<u8> {
     let objs = [
         "<< /Type /Catalog /Pages 2 0 R >>".to_string(),
         "<< /Type /Pages /Kids [3 0 R] /Count 1 >>".to_string(),
@@ -72,12 +76,16 @@ fn echo() -> String {
 }
 
 fn harness(on: bool) -> Harness<'static, PdfCraftApp> {
+    harness_with(fixture(), echo(), on)
+}
+
+fn harness_with(pdf: Vec<u8>, command: String, on: bool) -> Harness<'static, PdfCraftApp> {
     let mut h = Harness::builder().with_size(egui::vec2(1400.0, 900.0)).build_eframe(move |_cc| {
         let mut app = PdfCraftApp::new();
         app.set_option("language", "en").unwrap();
-        app.open_bytes("text.pdf", None, fixture()).expect("opens");
+        app.open_bytes("text.pdf", None, pdf).expect("opens");
         app.ai.enabled = on;
-        app.ai.provider = ProviderConfig { kind: ProviderKind::Custom, custom: echo(), ..ProviderConfig::default() };
+        app.ai.provider = ProviderConfig { kind: ProviderKind::Custom, custom: command, ..ProviderConfig::default() };
         app
     });
     h.run_steps(4);
@@ -156,4 +164,35 @@ fn escape_closes_the_popup() {
     h.key_press(Key::Escape);
     h.run_steps(2);
     assert!(h.state().define_popup.is_none());
+}
+
+/// Words spaced by TJ offsets, not space characters: the gaps around the selection reach the model
+/// as spaces, as everywhere else in the sentence.
+#[test]
+fn the_sentence_keeps_the_spaces_around_the_word() {
+    let pdf = fixture_with("BT /F1 14 Tf 40 150 Td [(The) -300 (effect) -300 (was) -300 (ephemeral) -300 (at) -300 (best!)] TJ ET");
+    // A provider that answers with its own prompt, so the test sees what was sent.
+    let cat = if cfg!(windows) { "cmd /C more" } else { "cat" };
+    let mut h = harness_with(pdf, cat.into(), true);
+    // "ephemeral" is glyphs 12 to 20: the gaps are not glyphs.
+    h.state_mut().views[0].select_text(0, 12, 20);
+    h.run_steps(3);
+    assert!(h.state_mut().execute("ai.define"));
+    crate::support::wait_until(&mut h, "the prompt back", |app| matches!(state(app), Some(DefineState::Answer(_) | DefineState::Error(_))));
+    let Some(DefineState::Answer(sent)) = state(h.state()) else { panic!("{:?}", state(h.state())) };
+    assert!(sent.contains("\"The effect was ephemeral at best!\""), "{sent}");
+}
+
+/// A Claude model name means nothing to Codex: switching provider resets it to that provider's
+/// default (haiku for Claude, the provider's own for the others).
+#[test]
+fn switching_provider_resets_the_model() {
+    let mut prefs = AiPrefs::default();
+    prefs.set_provider_kind(ProviderKind::Codex);
+    assert_eq!((prefs.provider.kind, prefs.provider.model.as_str()), (ProviderKind::Codex, ""));
+    prefs.set_provider_kind(ProviderKind::Claude);
+    assert_eq!(prefs.provider.model, "haiku");
+    prefs.provider.model = "sonnet".into();
+    prefs.set_provider_kind(ProviderKind::Claude);
+    assert_eq!(prefs.provider.model, "sonnet", "choosing the same provider keeps the model");
 }

@@ -35,6 +35,16 @@ impl Default for AiPrefs {
 }
 
 impl AiPrefs {
+    /// Choose the provider. Another provider starts from its own default model (haiku for Claude,
+    /// the provider's own for the others): a model name is one provider's.
+    pub fn set_provider_kind(&mut self, kind: ProviderKind) {
+        if kind == self.provider.kind {
+            return;
+        }
+        self.provider.kind = kind;
+        self.provider.model = if kind == ProviderKind::Claude { ProviderConfig::default().model } else { String::new() };
+    }
+
     pub(crate) fn to_json(&self) -> Value {
         let p = &self.provider;
         json!({
@@ -132,8 +142,24 @@ pub(crate) fn can_define(view: &DocView) -> bool {
 /// The selected word and the sentence it is in, when Define can look it up.
 pub(crate) fn define_target(view: &DocView) -> Option<(String, String)> {
     let (text, range, word) = selected_words(view)?;
-    let sentence = sentence_around(&text.text_of(0..range.start), &word, &text.text_of(range.end..text.glyphs.len()));
-    Some((word, sentence))
+    // `text_of` adds the spaces and line breaks between the glyphs it is given, not those at its
+    // ends: they are put back on both sides of the selection, as the page's whole text has them.
+    let before = text.text_of(0..range.start) + gap_before(&text, range.start);
+    let after = gap_before(&text, range.end).to_owned() + &text.text_of(range.end..text.glyphs.len());
+    Some((word.clone(), sentence_around(&before, &word, &after)))
+}
+
+/// What `PageText::text_of` puts before glyph `i`: a line break at a new line, a space at a word
+/// break, nothing at the page's start or end.
+fn gap_before(text: &pdfcraft_render::PageText, i: usize) -> &'static str {
+    let (Some(line), Some(prev)) = (text.line_of.get(i), i.checked_sub(1).and_then(|p| text.line_of.get(p))) else { return "" };
+    if line != prev {
+        "\n"
+    } else if text.space_before.get(i) == Some(&true) {
+        " "
+    } else {
+        ""
+    }
 }
 
 /// A lookup running on its own thread. Dropping it stops the provider.
