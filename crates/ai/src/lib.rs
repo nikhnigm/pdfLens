@@ -6,5 +6,9 @@
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
 pub mod context;
+pub mod error;
+pub mod prompt;
 
 pub use context::{MAX_SENTENCE, is_definable, sentence_around};
+pub use error::AiError;
+pub use prompt::{Request, prompt, split_command_line, tidy_answer};
