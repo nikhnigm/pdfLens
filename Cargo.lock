@@ -4564,6 +4564,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pdfcraft-ai"
+version = "0.21.1"
+dependencies = [
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
 name = "pdfcraft-annot"
 version = "0.21.1"
 dependencies = [

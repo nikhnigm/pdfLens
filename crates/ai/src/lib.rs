@@ -1,0 +1,10 @@
+//! pdfcraft-ai — bring-your-own-model lookups (L4).
+//!
+//! PdfCraft has no model of its own. A lookup hands a prompt to a program the user chose (the
+//! Claude CLI, the Codex CLI or any command) on stdin and reads the answer from stdout. Nothing
+//! runs unless the user turns the feature on.
+#![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
+
+pub mod context;
+
+pub use context::{MAX_SENTENCE, is_definable, sentence_around};
