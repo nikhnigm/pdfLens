@@ -252,8 +252,9 @@ pub fn tools() -> Vec<ToolDef> {
                 "generation":{"type":"integer","minimum":0,"description":"Use generation returned by object_list to reject a stale selection."}}), &["doc","page"])),
         t("object_paste", "Paste copied objects", "Edit ▸ Paste of what object_copy copied, onto page of doc as page content that draws the same: where it was, or on the page it came from 18 points down and to the right, and 18 more for each further paste onto the same page; centred when that would leave it off the page. Resources join the page's under names that don't clash; into another document the fonts, images and other objects they use are copied (each once, sharing what is there; refused past 20,000 objects or 256 MB). Pasted content is untagged and in no layer. One undo step.")
             .with(schema(json!({"doc":doc(),"page":{"type":"integer","minimum":1}}), &["doc","page"])),
-        t("ai_define", "Define a word", "Ask the user's own model (Claude CLI, Codex CLI or a custom command) for the meaning of word as used in sentence, in one line. Sends word and sentence to that program on stdin; nothing else leaves the machine. Fails with the program's error when it is missing, not signed in, or takes over 60 s.")
-            .ro()
+        t("ai_define", "Define a word", "Ask the user's own model (Claude CLI, Codex CLI or a custom command) for the meaning of word as used in sentence, in one line. Runs that program (program or command, when given, chooses which) and sends it word and sentence on stdin, which it may pass to an online model. Fails with the program's error when it is missing, not signed in, or takes over 60 s.")
+            // Not read-only: it starts a program the caller names, which may do anything.
+            .destructive()
             .cmd("ai.define")
             .with(schema(json!({
                 "word": { "type": "string", "description": "The word or phrase, 1-3 words." },

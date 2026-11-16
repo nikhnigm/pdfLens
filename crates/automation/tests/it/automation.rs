@@ -14777,5 +14777,6 @@ fn ai_define_runs_a_custom_provider() {
     let unknown = a.call("ai_define", &json!({ "word": "ephemeral", "sentence": "x", "provider": "gemini" })).unwrap_err();
     assert!(unknown.to_string().contains("claude, codex, custom"), "{unknown}");
     let def = tools().into_iter().find(|t| t.name == "ai_define").unwrap();
-    assert!(def.read_only && !def.destructive);
+    // It runs a program the caller names: never advertised as a harmless read.
+    assert!(!def.read_only && def.destructive);
 }
