@@ -254,6 +254,7 @@ pub fn tools() -> Vec<ToolDef> {
             .with(schema(json!({"doc":doc(),"page":{"type":"integer","minimum":1}}), &["doc","page"])),
         t("ai_define", "Define a word", "Ask the user's own model (Claude CLI, Codex CLI or a custom command) for the meaning of word as used in sentence, in one line. Sends word and sentence to that program on stdin; nothing else leaves the machine. Fails with the program's error when it is missing, not signed in, or takes over 60 s.")
             .ro()
+            .cmd("ai.define")
             .with(schema(json!({
                 "word": { "type": "string", "description": "The word or phrase, 1-3 words." },
                 "sentence": { "type": "string", "description": "The sentence it is used in." },
