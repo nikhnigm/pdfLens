@@ -152,6 +152,8 @@ const EDIT: &[&str] = &[
     SEP,
     "edit.column_select",
     "edit.snapshot",
+    // Bring your own model: off until turned on in Preferences.
+    "ai.define",
     SEP,
     "edit.attach",
     "form.clear",

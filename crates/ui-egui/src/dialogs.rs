@@ -123,6 +123,7 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
         app.discard_properties();
     }
     discard_inactive_password_drafts(app);
+    crate::ai_define::show(app, ctx);
     // A movable window, not this modal: the page under it shows the table as it changes.
     if app.dialog == Some(Dialog::FieldTable) {
         crate::field_table_ui::show(app, ctx);

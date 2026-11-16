@@ -4,10 +4,10 @@
 #[derive(Debug, thiserror::Error)]
 pub enum AiError {
     /// The command line in Preferences can't be used as written.
-    #[error("The command can't be used: {0}. Check Preferences ▸ AI.")]
+    #[error("The command can't be used: {0}. Check Preferences > AI.")]
     BadCommand(String),
     /// The provider's program isn't installed or isn't on PATH.
-    #[error("Couldn't find `{0}`. Install it, or set its full path in Preferences ▸ AI.")]
+    #[error("Couldn't find `{0}`. Install it, or set its full path in Preferences > AI.")]
     NotFound(String),
     /// The provider took longer than the limit.
     #[error("The provider didn't answer within {0} seconds. Try again, or choose a faster model.")]

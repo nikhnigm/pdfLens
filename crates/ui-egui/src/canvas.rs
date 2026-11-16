@@ -602,6 +602,8 @@ pub struct DocView {
     /// The selection whose action bar was closed by its Copy button: the bar stays hidden
     /// until the selection changes, as it does once a markup button consumes the selection.
     actions_dismissed: Option<Selection>,
+    /// The selection bar's Define was clicked: the app runs Define selection after the frame.
+    pub(crate) define_requested: bool,
     /// The drag in progress started a text selection: the wheel scrolls the page during it
     /// (#721), which egui's scroll area refuses while anything is dragged.
     selection_drag: bool,
@@ -1103,6 +1105,7 @@ impl DocView {
             selection: None,
             all_text: false,
             actions_dismissed: None,
+            define_requested: false,
             selection_drag: false,
             selection_drag_ended: false,
             clicks: 0,
@@ -3891,6 +3894,9 @@ fn apply_frame_requests(app: &mut PdfCraftApp, index: usize, ui: &mut egui::Ui, 
     }
     if copy_selected {
         app.execute("edit.copy");
+    }
+    if std::mem::take(&mut app.views[index].define_requested) {
+        app.execute("ai.define");
     }
     if copy_comments {
         app.execute("comment.copy");

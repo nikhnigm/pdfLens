@@ -610,6 +610,20 @@ impl PdfCraftApp {
                 }
                 return Some(false);
             }
+            "ai.define" => {
+                if cfg!(target_arch = "wasm32") {
+                    self.notify_tr("Define needs the desktop app");
+                    return Some(false);
+                }
+                // Off until the user chooses a provider: Preferences shows where to turn it on.
+                if !self.ai.enabled {
+                    self.dialog = Some(Dialog::Preferences);
+                    self.notify_tr("Turn on AI in Preferences > AI to use Define");
+                    return Some(true);
+                }
+                let Some(i) = active else { return Some(false) };
+                return Some(self.start_define(i));
+            }
             "comment.copy" => {
                 let Some(i) = active else { return Some(false) };
                 return Some(self.copy_selected_comments(i));

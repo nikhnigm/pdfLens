@@ -284,6 +284,19 @@ impl DocView {
         edit
     }
 
+    /// Close the selection's action bar until the selection changes (Define took its place).
+    pub(crate) fn dismiss_selection_actions(&mut self) {
+        self.actions_dismissed = self.selection;
+    }
+
+    /// Where the selection ends on screen (by the selection bar's rule), when that is on screen.
+    pub(crate) fn selection_end_rect(&self) -> Option<Rect> {
+        let selection = self.selection?;
+        let texts = self.selection_texts()?;
+        let (page, last) = bar_anchor(&selection, &texts)?;
+        Some(self.page_xform(page)?.view_rect(last))
+    }
+
     pub(crate) fn clear_selection(&mut self) {
         self.selection = None;
         self.actions_dismissed = None;
@@ -405,6 +418,7 @@ enum SelectionAction {
     Markup(comments::CommentTool),
     Replace,
     Copy,
+    Define,
 }
 
 /// The selection bar's width before it has been laid out once (English labels).
@@ -476,6 +490,7 @@ pub(super) fn selection_actions(
     let x = rect.left().clamp(viewport.left() + 8.0, (viewport.right() - width - 8.0).max(viewport.left() + 8.0));
     let y = if rect.bottom() + 48.0 < viewport.bottom() { rect.bottom() + 6.0 } else { (rect.top() - 44.0).max(viewport.top() + 6.0) };
     let mut chosen = None;
+    let definable = crate::ai_define::can_define(view);
     egui::Area::new(id).order(egui::Order::Foreground).fixed_pos(pos2(x, y)).show(ui.ctx(), |ui| {
         egui::Frame::popup(ui.style()).show(ui, |ui| {
             ui.horizontal(|ui| {
@@ -494,6 +509,10 @@ pub(super) fn selection_actions(
                 if ui.add_enabled(can_copy, egui::Button::new(tl!("Copy"))).clicked() {
                     chosen = Some(SelectionAction::Copy);
                 }
+                // Up to three words: their meaning from the user's own model (Preferences ▸ AI).
+                if definable && ui.add_enabled(can_copy, egui::Button::new(tl!("Define"))).clicked() {
+                    chosen = Some(SelectionAction::Define);
+                }
             });
         });
     });
@@ -502,6 +521,12 @@ pub(super) fn selection_actions(
         // Copying closes the bar but keeps the words selected, for ⌘C or a second action.
         view.actions_dismissed = Some(selection);
         return true;
+    }
+    if let SelectionAction::Define = action {
+        // Like Copy, the words stay selected; the app runs Define selection after the frame.
+        view.actions_dismissed = Some(selection);
+        view.define_requested = true;
+        return false;
     }
     let marks = view.selection_quads(info);
     if marks.is_empty() {
@@ -537,8 +562,8 @@ pub(super) fn selection_actions(
             });
             view.pending_edit = view.selection_marks_edit(edits.collect(), selection.head_page());
         }
-        // Copy is dispatched through the app after the view borrow ends.
-        SelectionAction::Copy => {}
+        // Copy and Define are dispatched through the app after the view borrow ends.
+        SelectionAction::Copy | SelectionAction::Define => {}
     }
     false
 }
