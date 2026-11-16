@@ -74,3 +74,19 @@ fn huge_output_is_capped() {
     let out = run(&inv, "", Duration::from_secs(60), &AtomicBool::new(false)).unwrap();
     assert!(!out.is_empty() && out.len() <= 65_536, "{}", out.len());
 }
+
+#[test]
+fn define_uses_cache_on_second_call() {
+    use pdfcraft_ai::{Cache, ProviderConfig, ProviderKind, Request, define};
+    use std::sync::Mutex;
+    let custom = if cfg!(windows) { "cmd /C echo Brief." } else { "sh -c \"echo Brief.\"" };
+    let cfg = ProviderConfig { kind: ProviderKind::Custom, custom: custom.into(), ..ProviderConfig::default() };
+    let req = Request { word: "ephemeral".into(), sentence: "It was ephemeral.".into(), language: "English".into() };
+    let cache = Mutex::new(Cache::default());
+    let first = define(&req, &cfg, Some(&cache), &AtomicBool::new(false)).unwrap();
+    assert_eq!((first.text.as_str(), first.cached), ("Brief.", false));
+    let second = define(&req, &cfg, Some(&cache), &AtomicBool::new(false)).unwrap();
+    assert_eq!((second.text.as_str(), second.cached), ("Brief.", true));
+    let uncached = define(&req, &cfg, None, &AtomicBool::new(false)).unwrap();
+    assert!(!uncached.cached);
+}

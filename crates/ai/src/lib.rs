@@ -5,14 +5,18 @@
 //! runs unless the user turns the feature on.
 #![deny(clippy::unwrap_used, clippy::expect_used, clippy::panic, clippy::unimplemented, clippy::todo, clippy::unreachable)]
 
+pub mod cache;
 pub mod context;
+pub mod define;
 pub mod error;
 pub mod prompt;
 pub mod provider;
 #[cfg(not(target_arch = "wasm32"))]
 pub mod run;
 
+pub use cache::{CACHE_CAP, CACHE_FILE, Cache};
 pub use context::{MAX_SENTENCE, is_definable, sentence_around};
+pub use define::{Definition, define};
 pub use error::AiError;
 pub use prompt::{Request, prompt, split_command_line, tidy_answer};
 pub use provider::{Invocation, ProviderConfig, ProviderKind, TIMEOUT, invocation};
