@@ -544,6 +544,13 @@ pub(crate) fn preferences_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tok
     });
     ui.add_space(12.0);
 
+    // Card 7: AI (bring your own model)
+    let title7 = tl!("AI (bring your own model)");
+    preference_card(ui, t, title7, Some("sparkles"), &mut ctx, |ui, ctx| {
+        card_ai(ui, app, t, ctx);
+    });
+    ui.add_space(12.0);
+
     if ctx.first_match_scrolled {
         ui.data_mut(|d| d.insert_temp(last_scrolled_id, query.clone()));
     } else if query.trim().is_empty() {
@@ -900,6 +907,50 @@ fn card_javascript(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, ctx: &m
         ),
         t,
     );
+}
+
+/// Content for Card 7: AI (bring your own model)
+fn card_ai(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, ctx: &mut PrefSearchContext) {
+    use pdfcraft_ai::ProviderKind;
+    let mut on = app.ai.enabled;
+    if ctx.checkbox(ui, &mut on, tl!("Use my own model for Define"), t).changed() {
+        app.ai.enabled = on;
+        if on && !app.ai.notice_shown {
+            app.ai.notice_shown = true;
+            app.notify_tr(crate::ai_define::NOTICE);
+        }
+    }
+    ctx.label_secondary(ui, tl!(crate::ai_define::NOTICE), t);
+    ui.add_space(6.0);
+    ui.horizontal(|ui| {
+        ctx.label_primary(ui, tl!("Provider"), t);
+        let mut kind = app.ai.provider.kind;
+        let options = [(ProviderKind::Claude, "Claude"), (ProviderKind::Codex, "Codex"), (ProviderKind::Custom, tl!("Custom"))];
+        if ctx.pill_choice(ui, t, &mut kind, &options) {
+            app.ai.provider.kind = kind;
+            if kind == ProviderKind::Claude && app.ai.provider.model.trim().is_empty() {
+                app.ai.provider.model = "haiku".into();
+            }
+        }
+    });
+    let field = |ui: &mut egui::Ui, ctx: &mut PrefSearchContext, label: &str, text: &mut String, hint: &str| {
+        ui.horizontal(|ui| {
+            let label = ctx.label_primary(ui, label, t);
+            ui.add(crate::widgets::line(text).desired_width(280.0).char_limit(1000).hint_text(hint)).labelled_by(label.id);
+        });
+    };
+    if app.ai.provider.kind == ProviderKind::Custom {
+        field(ui, ctx, tl!("Command"), &mut app.ai.provider.custom, tl!("Reads the prompt on stdin, writes the answer"));
+    } else {
+        field(ui, ctx, tl!("Model"), &mut app.ai.provider.model, tl!("Leave empty for the provider's default"));
+        field(ui, ctx, tl!("Program"), &mut app.ai.provider.program, tl!("Leave empty to find it on PATH"));
+    }
+    field(ui, ctx, tl!("Answer language"), &mut app.ai.language, "English");
+    ui.add_space(6.0);
+    if widgets::pill_button(ui, tl!("Clear cache"), false).clicked() {
+        app.ai_cache.clear();
+        app.notify_tr("Define's saved answers were cleared.");
+    }
 }
 
 /// Preferences dialog buttons: OK on the right. Returns true to close.
