@@ -6,7 +6,7 @@ use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::thread::JoinHandle;
+use std::sync::mpsc::{self, Receiver, RecvTimeoutError};
 use std::time::{Duration, Instant};
 
 /// The most of a provider's stdout kept, in bytes.
@@ -25,17 +25,20 @@ const POLL: Duration = Duration::from_millis(50);
 ///
 /// Errors: [`AiError::NotFound`] when the program isn't installed, [`AiError::Timeout`] after
 /// `timeout`, [`AiError::Cancelled`] once `cancel` is set, and [`AiError::Failed`] with the end of
-/// its stderr when it exits with an error.
+/// its stderr (or of its stdout, when it printed its error there) when it exits with an error.
+/// The time limit covers reading the output too: a program the provider started may keep its
+/// output open after the provider itself has exited.
 pub fn run(inv: &Invocation, stdin: &str, timeout: Duration, cancel: &AtomicBool) -> Result<String, AiError> {
     let dir = WorkDir::new()?;
     let mut child = spawn(inv, &dir.0)?;
-    let feed = child.stdin.take().map(|mut pipe| {
+    if let Some(mut pipe) = child.stdin.take() {
         let input = stdin.to_owned();
-        // A provider that exits without reading its input closes the pipe: not an error here.
+        // A provider that exits without reading its input closes the pipe: not an error here. Not
+        // waited for: a program it started may hold the pipe without reading it.
         std::thread::spawn(move || {
             let _ = pipe.write_all(input.as_bytes());
-        })
-    });
+        });
+    }
     let out = child.stdout.take().map(|pipe| reader(pipe, MAX_STDOUT, false));
     let err = child.stderr.take().map(|pipe| reader(pipe, MAX_STDERR, true));
     let started = Instant::now();
@@ -53,13 +56,13 @@ pub fn run(inv: &Invocation, stdin: &str, timeout: Duration, cancel: &AtomicBool
         }
         std::thread::sleep(POLL);
     };
-    if let Some(feed) = feed {
-        let _ = feed.join();
-    }
-    let stdout = collect(out)?;
-    let stderr = collect(err)?;
+    let deadline = started.checked_add(timeout).unwrap_or(started);
+    let stdout = collect(out, deadline, timeout, cancel)?;
+    let stderr = collect(err, deadline, timeout, cancel)?;
     if !status.success() {
-        return Err(AiError::Failed { program: inv.program.clone(), code: status.code(), stderr_tail: excerpt(&stderr) });
+        // Some programs print their error (such as a sign-in prompt) on stdout.
+        let said = if stderr.iter().all(u8::is_ascii_whitespace) { &stdout } else { &stderr };
+        return Err(AiError::Failed { program: inv.program.clone(), code: status.code(), stderr_tail: excerpt(said) });
     }
     let mut text = String::from_utf8_lossy(&stdout).into_owned();
     while text.len() > MAX_STDOUT {
@@ -110,29 +113,47 @@ fn stop(child: &mut Child) {
 
 /// Reads `pipe` to its end on a thread, keeping at most `cap` bytes: the first ones, or with
 /// `keep_end` the last ones. The rest is read and dropped so the program never blocks on output.
-fn reader(mut pipe: impl Read + Send + 'static, cap: usize, keep_end: bool) -> JoinHandle<std::io::Result<Vec<u8>>> {
+/// What was kept arrives on the returned channel once the pipe closes.
+fn reader(pipe: impl Read + Send + 'static, cap: usize, keep_end: bool) -> Receiver<std::io::Result<Vec<u8>>> {
+    let (sender, receiver) = mpsc::channel();
     std::thread::spawn(move || {
-        let (mut kept, mut chunk) = (Vec::new(), [0u8; 8192]);
-        loop {
-            let n = pipe.read(&mut chunk)?;
-            let Some(read) = chunk.get(..n).filter(|r| !r.is_empty()) else { return Ok(kept) };
-            if keep_end {
-                kept.extend_from_slice(read);
-                let excess = kept.len().saturating_sub(cap);
-                kept.drain(..excess);
-            } else {
-                let room = cap.saturating_sub(kept.len());
-                kept.extend_from_slice(read.get(..room.min(n)).unwrap_or_default());
-            }
-        }
-    })
+        let _ = sender.send(read_all(pipe, cap, keep_end));
+    });
+    receiver
 }
 
-fn collect(handle: Option<JoinHandle<std::io::Result<Vec<u8>>>>) -> Result<Vec<u8>, AiError> {
-    match handle.map(JoinHandle::join) {
-        None => Ok(Vec::new()),
-        Some(Ok(read)) => Ok(read?),
-        Some(Err(_)) => Err(AiError::Io(std::io::Error::other("reading the provider's output failed"))),
+fn read_all(mut pipe: impl Read, cap: usize, keep_end: bool) -> std::io::Result<Vec<u8>> {
+    let (mut kept, mut chunk) = (Vec::new(), [0u8; 8192]);
+    loop {
+        let n = pipe.read(&mut chunk)?;
+        let Some(read) = chunk.get(..n).filter(|r| !r.is_empty()) else { return Ok(kept) };
+        if keep_end {
+            kept.extend_from_slice(read);
+            let excess = kept.len().saturating_sub(cap);
+            kept.drain(..excess);
+        } else {
+            let room = cap.saturating_sub(kept.len());
+            kept.extend_from_slice(read.get(..room.min(n)).unwrap_or_default());
+        }
+    }
+}
+
+/// What a [`reader`] kept, once its pipe closes, by `deadline` and unless `cancel` is set.
+fn collect(
+    output: Option<Receiver<std::io::Result<Vec<u8>>>>,
+    deadline: Instant,
+    timeout: Duration,
+    cancel: &AtomicBool,
+) -> Result<Vec<u8>, AiError> {
+    let Some(output) = output else { return Ok(Vec::new()) };
+    loop {
+        match output.recv_timeout(POLL) {
+            Ok(read) => return Ok(read?),
+            Err(RecvTimeoutError::Disconnected) => return Err(AiError::Io(std::io::Error::other("reading the provider's output failed"))),
+            Err(RecvTimeoutError::Timeout) if cancel.load(Ordering::Relaxed) => return Err(AiError::Cancelled),
+            Err(RecvTimeoutError::Timeout) if Instant::now() >= deadline => return Err(AiError::Timeout(timeout.as_secs())),
+            Err(RecvTimeoutError::Timeout) => {}
+        }
     }
 }
 

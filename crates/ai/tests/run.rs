@@ -90,3 +90,19 @@ fn define_uses_cache_on_second_call() {
     let uncached = define(&req, &cfg, None, &AtomicBool::new(false)).unwrap();
     assert!(!uncached.cached);
 }
+
+#[test]
+fn a_program_left_holding_the_output_does_not_outlast_the_timeout() {
+    // The provider exits at once, but a program it started keeps its stdout open for 30 s.
+    let inv = if cfg!(windows) { fake("start /B ping -n 30 127.0.0.1 & echo Brief.") } else { fake("sleep 30 & echo Brief.") };
+    let t = Instant::now();
+    let r = run(&inv, "", Duration::from_secs(2), &AtomicBool::new(false));
+    assert!(t.elapsed() < Duration::from_secs(10), "took {:?}: {r:?}", t.elapsed());
+}
+
+#[test]
+fn an_error_printed_on_stdout_is_shown() {
+    let inv = fake("echo Please run /login & exit 1");
+    let e = run(&inv, "", Duration::from_secs(10), &AtomicBool::new(false)).unwrap_err();
+    assert!(matches!(&e, AiError::Failed { stderr_tail, .. } if stderr_tail.contains("Please run /login")), "{e:?}");
+}
