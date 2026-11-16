@@ -4604,6 +4604,7 @@ dependencies = [
  "craft-image-codecs",
  "craft-prc",
  "flate2",
+ "pdfcraft-ai",
  "pdfcraft-cos",
  "pdfcraft-engine",
  "pdfcraft-fonts",

@@ -252,6 +252,17 @@ pub fn tools() -> Vec<ToolDef> {
                 "generation":{"type":"integer","minimum":0,"description":"Use generation returned by object_list to reject a stale selection."}}), &["doc","page"])),
         t("object_paste", "Paste copied objects", "Edit ▸ Paste of what object_copy copied, onto page of doc as page content that draws the same: where it was, or on the page it came from 18 points down and to the right, and 18 more for each further paste onto the same page; centred when that would leave it off the page. Resources join the page's under names that don't clash; into another document the fonts, images and other objects they use are copied (each once, sharing what is there; refused past 20,000 objects or 256 MB). Pasted content is untagged and in no layer. One undo step.")
             .with(schema(json!({"doc":doc(),"page":{"type":"integer","minimum":1}}), &["doc","page"])),
+        t("ai_define", "Define a word", "Ask the user's own model (Claude CLI, Codex CLI or a custom command) for the meaning of word as used in sentence, in one line. Sends word and sentence to that program on stdin; nothing else leaves the machine. Fails with the program's error when it is missing, not signed in, or takes over 60 s.")
+            .ro()
+            .with(schema(json!({
+                "word": { "type": "string", "description": "The word or phrase, 1-3 words." },
+                "sentence": { "type": "string", "description": "The sentence it is used in." },
+                "provider": { "type": "string", "enum": ["claude", "codex", "custom"], "description": "Default claude." },
+                "model": { "type": "string", "description": "Model to ask for. Default haiku for claude, the provider's own default otherwise." },
+                "program": { "type": "string", "description": "Path to claude or codex when it is not on PATH." },
+                "command": { "type": "string", "description": "For provider custom: the command line to run; it reads the prompt on stdin and prints the answer." },
+                "language": { "type": "string", "description": "Language of the answer. Default English." }
+            }), &["word", "sentence"])),
         t("text_word_count", "Word count", "Count Unicode words and characters on selected pages (default all), with totals and per-page counts. Table/code exclusions use PDF structure tags, not visual guesses; unclassified text is retained. Image exclusion removes Figure-tagged and invisible/OCR text. Does not run OCR. Copy permission is required. Fails rather than returning a partial total when a page cannot be read.")
             .ro()
             .cmd("file.word_count")
