@@ -11,7 +11,7 @@ fn release(tag: &str) -> craft_update::Release {
     craft_update::Release {
         tag: tag.to_string(),
         version: craft_update::parse_version(tag),
-        html_url: format!("https://github.com/storytold/pdfcraft/releases/tag/{tag}"),
+        html_url: format!("https://github.com/nikhnigm/pdfcraft/releases/tag/{tag}"),
         ..Default::default()
     }
 }
@@ -77,7 +77,7 @@ fn a_newer_release_is_offered_for_download() {
     let mut h = harness(Ok(Some("v99.0.0")));
     h.state_mut().execute("help.check_updates");
     settle(&mut h);
-    h.get_by_label_contains("PdfCraft 99.0.0 is available");
+    h.get_by_label_contains("PdfLens 99.0.0 is available");
     h.get_by_label("DOWNLOAD");
     h.get_by_label("LATER").click();
     h.run_steps(3);
@@ -122,7 +122,7 @@ fn nothing_is_asked_until_the_user_checks() {
     h.state_mut().execute("help.check_updates");
     settle(&mut h);
     assert_eq!(calls.load(std::sync::atomic::Ordering::SeqCst), 1);
-    h.get_by_label_contains("PdfCraft 99.0.0 is available");
+    h.get_by_label_contains("PdfLens 99.0.0 is available");
 }
 
 /// The desktop app's start, with `settings` restored, and the count of what the source was asked.
@@ -177,7 +177,7 @@ fn the_preference_keeps_the_check_at_start_from_reaching_the_network() {
     h.state_mut().execute("help.check_updates");
     settle(&mut h);
     assert_eq!(calls.load(SeqCst), 1);
-    h.get_by_label_contains("PdfCraft 99.0.0 is available");
+    h.get_by_label_contains("PdfLens 99.0.0 is available");
 }
 
 /// The setting is about starting: turning it on asks nothing until the next start.
@@ -237,4 +237,17 @@ fn later_on_the_startup_prompt(h: &mut Harness<'static, PdfCraftApp>) {
     }
     h.get_by_label("LATER").click();
     h.run_steps(3);
+}
+
+/// PdfLens must only ever look for, and download, its own releases: an update from the official
+/// PdfCraft would replace the fork (and its Define feature) with a different product.
+#[test]
+fn updates_come_only_from_the_fork() {
+    let app = pdfcraft_ui_egui::UPDATE_APP;
+    assert_eq!(app.repo, "nikhnigm/pdfcraft");
+    assert_eq!(app.id, "pdflens", "release assets are pdflens-<version>-windows-<arch>.msi");
+    assert_eq!(app.name, pdfcraft_ui_egui::APP_NAME);
+    assert!(app.former_ids.is_empty() && app.former_names.is_empty());
+    assert_ne!(app.developer, "ArtCraft");
+    assert_eq!(pdfcraft_ui_egui::updates::RELEASES_PAGE, "https://github.com/nikhnigm/pdfcraft/releases");
 }
