@@ -617,7 +617,7 @@ impl PdfCraftApp {
                 }
                 // Off until the user chooses a provider: Preferences shows where to turn it on.
                 if !self.ai.enabled {
-                    self.dialog = Some(Dialog::Preferences);
+                    self.open_ai_preferences();
                     self.notify_tr("Turn on AI in Preferences > AI to use Define");
                     return Some(true);
                 }

@@ -4,7 +4,7 @@
 
 Every asset PdfCraft includes, bundles or uses to build its published material, with its author, source and licence. The policy is in [AGENTS.md](AGENTS.md) §1. The machine-readable list, with the SHA-256 of every asset, is [ATTRIBUTION.toml](ATTRIBUTION.toml). Licence texts are kept beside the assets and summarised in [NOTICE](NOTICE).
 
-## In this repository (253)
+## In this repository (256)
 
 | Asset | Title | Author | Licence | Source | Used for |
 |---|---|---|---|---|---|
@@ -60,6 +60,9 @@ Every asset PdfCraft includes, bundles or uses to build its published material, 
 | `assets/icons/contrast.svg` | Lucide icon "contrast" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/contrast.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
 | `assets/icons/copy-plus.svg` | Lucide icon "copy-plus" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/copy-plus.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
 | `assets/icons/copy.svg` | Lucide icon "copy" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/copy.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
+| `assets/icons/book-a.svg` | Lucide icon "book-a" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/book-a.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
+| `assets/icons/grip-vertical.svg` | Lucide icon "grip-vertical" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/grip-vertical.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
+| `assets/icons/circle-alert.svg` | Lucide icon "circle-alert" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/circle-alert.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
 | `assets/icons/crop.svg` | Lucide icon "crop" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/crop.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
 | `assets/icons/droplet.svg` | Lucide icon "droplet" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/droplet.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
 | `assets/icons/ellipsis-vertical.svg` | Lucide icon "ellipsis-vertical" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/ellipsis-vertical.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |

@@ -354,6 +354,7 @@ impl PdfCraftApp {
             ai_cache: Default::default(),
             define_popup: None,
             define_pos: None,
+            prefs_show_ai: false,
             redact_pages_draft: RedactPagesDraft::default(),
             redact_search: RedactSearchDraft::default(),
             hidden_draft: HiddenDraft::default(),

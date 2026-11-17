@@ -301,3 +301,16 @@ fn text_is_readable_on_every_surface() {
         }
     }
 }
+
+/// The Define card's quiet icons stay out of the way yet are still controls you can see (3:1 on
+/// the card, the level for icons), and the ok and danger colours read on it too.
+#[test]
+fn quiet_icons_ok_and_danger_read_on_the_card() {
+    for kind in [ThemeKind::Light, ThemeKind::Dark] {
+        let t = Tokens::for_kind(kind);
+        for (name, c) in [("icon_quiet", t.icon_quiet), ("ok", t.ok), ("danger", t.danger)] {
+            assert!(contrast(c, t.card) >= 3.0, "{name} on the {kind:?} card: {}", contrast(c, t.card));
+        }
+        assert!(contrast(t.icon_quiet, t.card) < contrast(t.icon, t.card), "quieter than ordinary icons in {kind:?}");
+    }
+}

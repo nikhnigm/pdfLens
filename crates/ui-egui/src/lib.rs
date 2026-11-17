@@ -851,6 +851,8 @@ pub struct PdfCraftApp {
     pub define_popup: Option<DefinePopup>,
     /// Where the user last dragged the Define popup; later lookups open there.
     pub define_pos: Option<egui::Pos2>,
+    /// Preferences opens scrolled to its AI section (the Define card's settings button).
+    pub(crate) prefs_show_ai: bool,
     pub redact_pages_draft: RedactPagesDraft,
     pub redact_search: RedactSearchDraft,
     pub hidden_draft: HiddenDraft,

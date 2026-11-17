@@ -196,3 +196,135 @@ fn switching_provider_resets_the_model() {
     prefs.set_provider_kind(ProviderKind::Claude);
     assert_eq!(prefs.provider.model, "sonnet", "choosing the same provider keeps the model");
 }
+
+/// A provider that always fails.
+fn failing() -> String {
+    if cfg!(windows) { "cmd /C exit 3".into() } else { "sh -c \"exit 3\"".into() }
+}
+
+fn answered(h: &mut Harness<'static, PdfCraftApp>) {
+    select_word(h);
+    assert!(h.state_mut().execute("ai.define"));
+    crate::support::wait_until(h, "the answer", |app| state(app) == Some(DefineState::Answer("Brief.".into())));
+    h.run_steps(2);
+}
+
+/// The card has no window title: its header is the word, with a close button; the answer's
+/// footer has only the copy and settings icons, named by their tooltips.
+#[test]
+fn the_card_shows_the_word_and_quiet_icon_buttons() {
+    let mut h = harness(true);
+    answered(&mut h);
+    assert!(h.query_by_label("Close").is_some(), "close in the header");
+    assert!(h.query_by_label("Copy meaning").is_some(), "copy at the bottom left");
+    assert!(h.query_by_label("Model settings").is_some(), "settings at the bottom right");
+    assert!(h.query_by_label("Brief.").is_some(), "the meaning");
+    assert_eq!(h.state().define_popup.as_ref().map(|p| p.model()), Some(""), "a command names no model");
+}
+
+#[test]
+fn copy_confirms_with_a_check() {
+    let mut h = harness(true);
+    answered(&mut h);
+    h.get_by_label("Copy meaning").click();
+    h.run_steps(2);
+    assert!(h.state().define_popup.as_ref().is_some_and(|p| p.copied()), "copied");
+    assert!(h.query_by_label("Copied").is_some(), "the button says so");
+    assert!(h.query_by_label("Copy meaning").is_none());
+}
+
+#[test]
+fn the_settings_button_opens_preferences_at_ai() {
+    let mut h = harness(true);
+    answered(&mut h);
+    h.get_by_label("Model settings").click();
+    h.run_steps(3);
+    assert_eq!(h.state().dialog, Some(Dialog::Preferences));
+    assert!(h.state().define_popup.is_none(), "the card makes way for Preferences");
+    assert!(h.query_by_label("Answer language").is_some(), "the AI section is there");
+}
+
+#[test]
+fn the_close_button_closes_the_card() {
+    let mut h = harness(true);
+    answered(&mut h);
+    h.get_by_label("Close").click();
+    h.run_steps(2);
+    assert!(h.state().define_popup.is_none());
+}
+
+#[test]
+fn a_failed_lookup_says_why_and_offers_the_settings() {
+    let mut h = harness_with(fixture(), failing(), true);
+    select_word(&mut h);
+    assert!(h.state_mut().execute("ai.define"));
+    crate::support::wait_until(&mut h, "the error", |app| matches!(state(app), Some(DefineState::Error(_))));
+    h.run_steps(2);
+    assert!(h.query_by_label_contains("Couldn't look this up").is_some(), "the title");
+    h.get_by_label("Open AI settings").click();
+    h.run_steps(3);
+    assert_eq!(h.state().dialog, Some(Dialog::Preferences));
+}
+
+#[test]
+fn while_looking_up_cancel_closes_the_card() {
+    // A provider that takes its time, so the card is still loading.
+    let slow = if cfg!(windows) { "cmd /C ping -n 6 127.0.0.1" } else { "sleep 5" };
+    let mut h = harness_with(fixture(), slow.into(), true);
+    select_word(&mut h);
+    assert!(h.state_mut().execute("ai.define"));
+    h.run_steps(3);
+    assert_eq!(state(h.state()), Some(DefineState::Loading));
+    h.get_by_label("Cancel").click();
+    h.run_steps(2);
+    assert!(h.state().define_popup.is_none());
+}
+
+/// Dragging the header moves the card, and the next lookup opens where it was left.
+#[test]
+fn dragging_the_header_moves_the_card() {
+    let mut h = harness(true);
+    answered(&mut h);
+    let Some(start) = h.state().define_popup.as_ref().and_then(|p| p.pos()) else { panic!("placed") };
+    let from = start + egui::vec2(120.0, 22.0);
+    let button = |pos, pressed| egui::Event::PointerButton { pos, button: egui::PointerButton::Primary, pressed, modifiers: Default::default() };
+    h.event(egui::Event::PointerMoved(from));
+    h.run_steps(1);
+    h.event(button(from, true));
+    h.run_steps(1);
+    for step in 1..=10 {
+        h.event(egui::Event::PointerMoved(from + egui::vec2(0.0, 8.0 * step as f32)));
+        h.run_steps(1);
+    }
+    h.event(button(from + egui::vec2(0.0, 80.0), false));
+    h.run_steps(2);
+    let Some(moved) = h.state().define_pos else { panic!("the dragged position is kept") };
+    assert!(moved.y > start.y + 40.0, "moved down: {start:?} to {moved:?}");
+    // The next card opens there.
+    h.key_press(Key::Escape);
+    h.run_steps(2);
+    answered(&mut h);
+    assert_eq!(h.state().define_popup.as_ref().and_then(|p| p.pos()), Some(moved));
+}
+
+/// Preferences ▸ AI: off, only the switch and its hint; on for the first time, the notice stays
+/// until "Got it", then the hint takes its place.
+#[test]
+fn ai_preferences_show_the_notice_until_got_it() {
+    let mut h = harness(false);
+    // Define while off opens Preferences scrolled to its AI section.
+    assert!(h.state_mut().execute("ai.define"));
+    h.run_steps(3);
+    assert_eq!(h.state().dialog, Some(Dialog::Preferences));
+    assert!(h.query_all_by_label("Use my own model for Define").next().is_some(), "the switch");
+    assert!(h.query_by_label("Provider").is_none(), "off: no provider settings");
+    h.state_mut().ai.enabled = true;
+    h.run_steps(3);
+    assert!(h.query_by_label("Got it").is_some(), "the notice, once");
+    assert!(h.query_by_label("Provider").is_some(), "on: the settings");
+    assert!(h.query_by_label("No saved answers").is_some(), "the cache count by Clear cache");
+    h.get_by_label("Got it").click();
+    h.run_steps(2);
+    assert!(h.state().ai.notice_shown);
+    assert!(h.query_by_label("Got it").is_none(), "acknowledged");
+}

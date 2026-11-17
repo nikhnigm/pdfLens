@@ -583,6 +583,39 @@ usage = "UI icon, embedded via crates/ui-egui/src/icon_data.rs"
 sha256 = "ea80e566c7a12628a447cb53179b19aea4f60b9143e2becd0d0f20bf260e5718"
 
 [[asset]]
+path = "assets/icons/book-a.svg"
+title = "Lucide icon \"book-a\""
+author = "Lucide Contributors (portions Cole Bemis, Feather)"
+source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/book-a.svg)"
+licence = "ISC AND MIT"
+licence_file = "assets/icons/LICENSE-lucide.txt"
+kind = "icon"
+usage = "UI icon, embedded via crates/ui-egui/src/icon_data.rs"
+sha256 = "7dec01f5abda629509d2e2ce2300255485734e2ba3c0012a22710221175be3f4"
+
+[[asset]]
+path = "assets/icons/grip-vertical.svg"
+title = "Lucide icon \"grip-vertical\""
+author = "Lucide Contributors (portions Cole Bemis, Feather)"
+source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/grip-vertical.svg)"
+licence = "ISC AND MIT"
+licence_file = "assets/icons/LICENSE-lucide.txt"
+kind = "icon"
+usage = "UI icon, embedded via crates/ui-egui/src/icon_data.rs"
+sha256 = "ddf3a20c45869614f7b49dd14c5cbaba026d4155382e30b0ae8418f31c1ce2c5"
+
+[[asset]]
+path = "assets/icons/circle-alert.svg"
+title = "Lucide icon \"circle-alert\""
+author = "Lucide Contributors (portions Cole Bemis, Feather)"
+source = "https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/circle-alert.svg)"
+licence = "ISC AND MIT"
+licence_file = "assets/icons/LICENSE-lucide.txt"
+kind = "icon"
+usage = "UI icon, embedded via crates/ui-egui/src/icon_data.rs"
+sha256 = "ce3e98b7a03b78c0071131df42466e4e1ff5187fccad30e739ec9ce951cf685a"
+
+[[asset]]
 path = "assets/icons/crop.svg"
 title = "Lucide icon \"crop\""
 author = "Lucide Contributors (portions Cole Bemis, Feather)"

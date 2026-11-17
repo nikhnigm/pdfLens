@@ -422,7 +422,52 @@ enum SelectionAction {
 }
 
 /// The selection bar's width before it has been laid out once (English labels).
-const SELECTION_BAR_GUESS: f32 = 520.0;
+const SELECTION_BAR_GUESS: f32 = 640.0;
+
+/// The divider before Define: 1 × 20, with this much room on each side.
+const DEFINE_DIVIDER_GAP: f32 = 4.0;
+const DEFINE_DIVIDER_HEIGHT: f32 = 20.0;
+
+/// Define in the selection bar: the book icon and "Define" in the accent text colour, its shortcut
+/// faint beside it, on an accent-soft wash when hovered. `height` is the bar's other buttons', so
+/// the row stays one height; the corner is theirs too.
+fn define_button(ui: &mut egui::Ui, height: f32, enabled: bool) -> egui::Response {
+    const PAD: f32 = 12.0;
+    const ICON: f32 = 16.0;
+    const GAP: f32 = 8.0;
+    let t = crate::theme::Tokens::get(ui.ctx());
+    let label = tl!("Define");
+    let shortcut = crate::commands::command_shortcut_label(ui.ctx(), "ai.define");
+    let label_galley = crate::bidi::layout_ui(ui, label.to_owned(), crate::theme::medium(13.0), t.accent_text);
+    let key_galley = (!shortcut.is_empty()).then(|| crate::bidi::layout_ltr(ui, shortcut, crate::theme::regular(12.0), t.text_faint));
+    let key_width = key_galley.as_ref().map_or(0.0, |g| GAP + g.size().x);
+    let width = PAD + ICON + GAP + label_galley.size().x + key_width + PAD;
+    let sense = if enabled { egui::Sense::click() } else { egui::Sense::hover() };
+    let (rect, resp) = ui.allocate_exact_size(egui::vec2(width, height), sense);
+    resp.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, enabled, label));
+    if !ui.is_rect_visible(rect) {
+        return resp;
+    }
+    let hot = enabled && (resp.hovered() || resp.is_pointer_button_down_on());
+    let fade = |c: egui::Color32| if enabled { c } else { c.gamma_multiply(0.45) };
+    if hot {
+        let fill = if resp.is_pointer_button_down_on() { t.accent_soft.lerp_to_gamma(t.accent, 0.12) } else { t.accent_soft };
+        ui.painter().rect_filled(rect, ui.visuals().widgets.hovered.corner_radius, fill);
+    }
+    let mut x = rect.left() + PAD;
+    let mid = rect.center().y;
+    crate::icons::paint(ui, Rect::from_min_size(pos2(x, mid - ICON / 2.0), egui::vec2(ICON, ICON)), "book-a", ICON, fade(t.accent_text));
+    x += ICON + GAP;
+    let label_size = label_galley.size();
+    ui.painter().galley_with_override_text_color(pos2(x, mid - label_size.y / 2.0), label_galley, fade(t.accent_text));
+    x += label_size.x + GAP;
+    if let Some(key) = key_galley {
+        let key_color = if hot { t.accent_text } else { t.text_faint };
+        let y = mid - key.size().y / 2.0;
+        ui.painter().galley_with_override_text_color(pos2(x, y), key, fade(key_color));
+    }
+    if enabled { crate::theme::hand(resp) } else { resp }
+}
 
 /// Edits that each add a page's part of something marked on a text selection, as one undo step:
 /// the edit itself for one page, a batch named like it for several. For edits whose label has no
@@ -506,12 +551,21 @@ pub(super) fn selection_actions(
                         chosen = Some(action);
                     }
                 }
-                if ui.add_enabled(can_copy, egui::Button::new(tl!("Copy"))).clicked() {
+                let copy = ui.add_enabled(can_copy, egui::Button::new(tl!("Copy")));
+                if copy.clicked() {
                     chosen = Some(SelectionAction::Copy);
                 }
-                // Up to three words: their meaning from the user's own model (Preferences ▸ AI).
-                if definable && ui.add_enabled(can_copy, egui::Button::new(tl!("Define"))).clicked() {
-                    chosen = Some(SelectionAction::Define);
+                // Up to three words: their meaning from the user's own model (Preferences ▸ AI),
+                // set apart from the markup tools as the one AI action.
+                if definable {
+                    ui.spacing_mut().item_spacing.x = DEFINE_DIVIDER_GAP;
+                    let height = copy.rect.height();
+                    let (divider, _) = ui.allocate_exact_size(egui::vec2(1.0, height), egui::Sense::hover());
+                    let t = crate::theme::Tokens::get(ui.ctx());
+                    ui.painter().rect_filled(Rect::from_center_size(divider.center(), egui::vec2(1.0, DEFINE_DIVIDER_HEIGHT)), 0.0, t.divider);
+                    if define_button(ui, height, can_copy).clicked() {
+                        chosen = Some(SelectionAction::Define);
+                    }
                 }
             });
         });

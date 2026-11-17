@@ -1,6 +1,6 @@
 //! Small custom widgets built on the design tokens.
 
-use egui::{Align2, Color32, CornerRadius, Rect, Response, Sense, Stroke, vec2};
+use egui::{Align2, Color32, CornerRadius, Rect, Response, Sense, Stroke, Vec2, vec2};
 
 use crate::PdfCraftApp;
 use crate::theme::{self, Tokens};
@@ -297,23 +297,71 @@ pub fn search_box(ui: &mut egui::Ui, placeholder: &str, width: f32) -> Response 
     if elided { resp.on_hover_text(placeholder) } else { resp }
 }
 
-/// Corner radius of a checkbox's box. With the widgets' radius (`Tokens::radius`, 6) egui's 14 px
-/// box is a circle, the shape of a radio button, and View ▸ Page display has both.
-const CHECKBOX_RADIUS: u8 = 3;
+/// A checkbox's box: 16 px, with a corner small enough to keep it square (never mistaken for a
+/// radio button, and View ▸ Page display has both).
+const CHECKBOX_SIZE: f32 = 16.0;
+const CHECKBOX_RADIUS: u8 = 4;
 
-/// A checkbox whose box is an outlined rounded square, never mistaken for a radio button. Every
-/// checkbox goes through here: clippy.toml disallows `ui.checkbox` and `egui::Checkbox`.
+/// A checkbox with the standard filled box: checked, an accent square with a white check; not
+/// checked, the field colour with a quiet border, darker on hover. Every checkbox goes through
+/// here: clippy.toml disallows `ui.checkbox` and `egui::Checkbox`.
 pub fn checkbox<'a>(checked: &'a mut bool, atoms: impl egui::IntoAtoms<'a>) -> impl egui::Widget + 'a {
+    let was = *checked;
     #[expect(clippy::disallowed_methods, reason = "the one place that styles the box")]
     let widget = egui::Checkbox::new(checked, atoms);
-    toggle(widget, Some(CHECKBOX_RADIUS))
+    filled_box(widget, was)
 }
 
 /// [`checkbox`] without a label: the selection box on Organize Pages thumbnails.
 pub fn checkbox_without_text(checked: &mut bool) -> impl egui::Widget + '_ {
+    let was = *checked;
     #[expect(clippy::disallowed_methods, reason = "the one place that styles the box")]
     let widget = egui::Checkbox::without_text(checked);
-    toggle(widget, Some(CHECKBOX_RADIUS))
+    filled_box(widget, was)
+}
+
+/// Draw egui's checkbox `widget` (its layout, label and accessibility) with a 16 px box, then the
+/// filled box over egui's own. `was` is the state before this frame's click, which flips it.
+fn filled_box<'a>(widget: impl egui::Widget + 'a, was: bool) -> impl egui::Widget + 'a {
+    move |ui: &mut egui::Ui| {
+        ui.scope(|ui| {
+            ui.spacing_mut().icon_width = CHECKBOX_SIZE;
+            let resp = ui.add(widget);
+            let checked = was != resp.clicked();
+            if ui.is_rect_visible(resp.rect) {
+                paint_check_box(ui, &resp, checked);
+            }
+            resp
+        })
+        .inner
+    }
+}
+
+/// The filled box over egui's, at the start of the checkbox's row (its right end in a
+/// right-to-left interface), centred on it.
+fn paint_check_box(ui: &egui::Ui, resp: &Response, checked: bool) {
+    let t = Tokens::get(ui.ctx());
+    let half = CHECKBOX_SIZE / 2.0;
+    let x = if ui.style().right_to_left { resp.rect.right() - half } else { resp.rect.left() + half };
+    let rect = Rect::from_center_size(egui::pos2(x, resp.rect.center().y), Vec2::splat(CHECKBOX_SIZE));
+    let enabled = ui.is_enabled();
+    let fade = |c: Color32| if enabled { c } else { c.gamma_multiply(0.45) };
+    let hot = enabled && (resp.hovered() || resp.is_pointer_button_down_on());
+    let painter = ui.painter();
+    if checked {
+        let fill = if hot { t.accent.lerp_to_gamma(t.accent_text, 0.5) } else { t.accent };
+        painter.rect_filled(rect, CornerRadius::same(CHECKBOX_RADIUS), fade(fill));
+        // Lucide's check, in the box's 16 px: 20,6 → 9,17 → 4,12 of 24.
+        let at = |x: f32, y: f32| rect.min + vec2(x, y) * (CHECKBOX_SIZE / 24.0);
+        let mark = vec![at(19.0, 7.0), at(9.5, 16.5), at(5.0, 12.0)];
+        painter.add(egui::Shape::line(mark, Stroke::new(2.0, fade(Color32::WHITE))));
+    } else {
+        let border = if hot { t.text_muted } else { t.icon_quiet };
+        painter.rect(rect, CornerRadius::same(CHECKBOX_RADIUS), fade(t.field), Stroke::new(1.5, fade(border)), egui::StrokeKind::Inside);
+    }
+    if resp.has_focus() {
+        painter.rect_stroke(rect.expand(2.0), CornerRadius::same(CHECKBOX_RADIUS + 2), Stroke::new(2.0, t.accent), egui::StrokeKind::Outside);
+    }
 }
 
 /// A radio button with an outline and a fill, like [`checkbox`]. Every radio button goes through
@@ -322,7 +370,7 @@ pub fn checkbox_without_text(checked: &mut bool) -> impl egui::Widget + '_ {
 pub fn radio<'a>(selected: bool, atoms: impl egui::IntoAtoms<'a>) -> impl egui::Widget + 'a {
     #[expect(clippy::disallowed_methods, reason = "the one place that styles the circle")]
     let widget = egui::RadioButton::new(selected, atoms);
-    toggle(widget, None)
+    toggle(widget)
 }
 
 /// [`radio`] selected while `*current == alternative`; a click selects it (`Ui::radio_value`).
@@ -352,23 +400,17 @@ pub fn typing_into(field: &Response) -> bool {
     field.ctx.memory(|m| m.has_focus(field.id))
 }
 
-/// The box of a checkbox or the circle of a radio button. egui draws it with the widgets' visuals
-/// and has no style of its own for it, so it is set in a scope around the widget, keeping what
-/// the caller set (dialogs and the search panel already outline theirs):
+/// The circle of a radio button. egui draws it with the widgets' visuals and has no style of its
+/// own for it, so it is set in a scope around the widget, keeping what the caller set (dialogs and
+/// the search panel already outline theirs):
 /// - an outline, darker on hover;
 /// - on the light theme, the plain fill (`Tokens::hover`), as dialogs have: the field colour is
-///   the panels' white, so the box would vanish;
-/// - for a checkbox, a corner radius small enough to keep the box square.
-fn toggle<'a>(widget: impl egui::Widget + 'a, radius: Option<u8>) -> impl egui::Widget + 'a {
+///   the panels' white, so the circle would vanish.
+fn toggle<'a>(widget: impl egui::Widget + 'a) -> impl egui::Widget + 'a {
     move |ui: &mut egui::Ui| {
         ui.scope(|ui| {
             let t = Tokens::get(ui.ctx());
             let w = &mut ui.visuals_mut().widgets;
-            if let Some(radius) = radius {
-                for v in [&mut w.noninteractive, &mut w.inactive, &mut w.hovered, &mut w.active, &mut w.open] {
-                    v.corner_radius = CornerRadius::same(radius);
-                }
-            }
             if !t.dark() && w.inactive.bg_fill == t.field {
                 w.inactive.bg_fill = t.hover;
             }
@@ -816,7 +858,7 @@ mod tests {
                 .shapes
                 .iter()
                 .filter_map(|s| match &s.shape {
-                    egui::Shape::Rect(r) if (r.rect.width() - side).abs() < 0.5 && (r.rect.height() - side).abs() < 0.5 => Some(r),
+                    egui::Shape::Rect(r) if (r.rect.width() - CHECKBOX_SIZE).abs() < 0.5 && (r.rect.height() - CHECKBOX_SIZE).abs() < 0.5 => Some(r),
                     _ => None,
                 })
                 .collect();
@@ -828,12 +870,22 @@ mod tests {
                     _ => None,
                 })
                 .collect();
-            assert_eq!((boxes.len(), circles.len()), (1, 1), "{kind:?}: one checkbox box and one radio circle");
-            let r = boxes[0].corner_radius;
+            // egui's box, then the filled box painted over it: the one on top is what shows.
+            let shown = boxes.last().copied();
+            assert_eq!((shown.is_some(), circles.len()), (true, 1), "{kind:?}: a checkbox box and one radio circle");
+            let Some(shown) = shown else { return };
+            let r = shown.corner_radius;
             let radius = r.nw.max(r.ne).max(r.sw).max(r.se);
-            assert!(f32::from(radius) <= side / 4.0, "{kind:?}: a {side} px box with corner radius {radius} looks like a radio button");
-            for (what, fill, edge) in [("checkbox", boxes[0].fill, boxes[0].stroke), ("radio button", circles[0].fill, circles[0].stroke)] {
-                assert!(fill != t.panel && fill != t.card, "{kind:?}: an unselected {what} is filled like the panel behind it");
+            assert!(
+                f32::from(radius) <= CHECKBOX_SIZE / 4.0,
+                "{kind:?}: a {CHECKBOX_SIZE} px box with corner radius {radius} looks like a radio button"
+            );
+            // An unticked filled-style box is the field colour, which may match the card: its
+            // border, in the quiet-icon colour (3:1 on the card, theme tests), is what shows it.
+            assert_eq!(shown.stroke.color, t.icon_quiet, "{kind:?}: an unticked checkbox is outlined in the quiet-icon colour");
+            let radio_fill = circles[0].fill;
+            assert!(radio_fill != t.panel && radio_fill != t.card, "{kind:?}: an unselected radio button is filled like the panel behind it");
+            for (what, edge) in [("checkbox", shown.stroke), ("radio button", circles[0].stroke)] {
                 assert!(
                     edge.width >= 1.0 && edge.color != t.panel && edge.color != t.card,
                     "{kind:?}: an unselected {what} needs an outline, got {edge:?}"

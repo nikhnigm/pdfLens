@@ -18,6 +18,18 @@ pub(crate) const PREFERENCES_BUTTON_ROW: f32 = 52.0;
 /// The least height the scrolling settings are given in very small windows.
 pub(crate) const PREFERENCES_MIN_SCROLL: f32 = 60.0;
 
+/// A segment's height; its corner makes it a full pill.
+const SEGMENT_HEIGHT: f32 = 24.0;
+const SEGMENT_RADIUS: u8 = 12;
+/// The track's padding around the segments, the same on every side.
+const SEGMENT_PAD: i8 = 3;
+/// The track's corner, concentric with the segments': theirs plus the padding and the 1 px
+/// border, so the gap between them is even all the way round. The track is then 32 tall.
+const SEGMENT_TRACK_RADIUS: u8 = SEGMENT_RADIUS + SEGMENT_PAD as u8 + 1;
+/// A lone toggle pill beside a track is the track's height, so the row lines up.
+const TOGGLE_PILL_HEIGHT: f32 = 32.0;
+const TOGGLE_PILL_RADIUS: u8 = 16;
+
 /// A segmented pill control for mutually exclusive choices.
 ///
 /// Draws a rounded container with options inside. The active option is highlighted
@@ -46,10 +58,13 @@ pub fn segmented_pill_choice_a11y_query<T: PartialEq + Copy>(
     egui::Frame::new()
         .fill(t.field)
         .stroke(Stroke::new(1.0, t.border))
-        .corner_radius(CornerRadius::same(14))
-        .inner_margin(Margin::symmetric(2, 2))
+        .corner_radius(CornerRadius::same(SEGMENT_TRACK_RADIUS))
+        .inner_margin(Margin::same(SEGMENT_PAD))
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing.x = 2.0;
+            // A row is at least the interact height, taller than a segment: the segments would sit
+            // in its middle with more room above and below than at the ends. The row is theirs.
+            ui.spacing_mut().interact_size.y = SEGMENT_HEIGHT;
             ui.horizontal(|ui| {
                 for &(value, label, a11y_label) in options {
                     let is_active = *current == value;
@@ -57,7 +72,7 @@ pub fn segmented_pill_choice_a11y_query<T: PartialEq + Copy>(
                     let text_color = if is_active { Color32::WHITE } else { t.text };
                     let label_galley = layout_pill_label(ui, label, query, font, text_color);
                     let w = label_galley.size().x;
-                    let (rect, resp) = ui.allocate_exact_size(vec2(w + 18.0, 24.0), Sense::click());
+                    let (rect, resp) = ui.allocate_exact_size(vec2(w + 24.0, SEGMENT_HEIGHT), Sense::click());
                     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::RadioButton, true, is_active, a11y_label));
 
                     if first_match_resp.is_none() && !find_match_ranges(label, query).is_empty() {
@@ -65,18 +80,18 @@ pub fn segmented_pill_choice_a11y_query<T: PartialEq + Copy>(
                     }
 
                     if is_active {
-                        ui.painter().rect(rect, CornerRadius::same(12), t.accent, Stroke::NONE, egui::StrokeKind::Inside);
+                        ui.painter().rect(rect, CornerRadius::same(SEGMENT_RADIUS), t.accent, Stroke::NONE, egui::StrokeKind::Inside);
                     } else {
                         let press = theme::Press::track(ui, &resp);
                         let fill = press.fill(Color32::TRANSPARENT, t.hover, t.pressed);
-                        ui.painter().rect(rect, CornerRadius::same(12), fill, Stroke::NONE, egui::StrokeKind::Inside);
+                        ui.painter().rect(rect, CornerRadius::same(SEGMENT_RADIUS), fill, Stroke::NONE, egui::StrokeKind::Inside);
                     }
                     ui.painter().galley(rect.center() - label_galley.size() / 2.0, label_galley, text_color);
 
                     if resp.has_focus() {
                         ui.painter().rect_stroke(
                             rect.expand(1.0),
-                            CornerRadius::same(13),
+                            CornerRadius::same(SEGMENT_RADIUS + 1),
                             Stroke::new(2.0, t.accent_text),
                             egui::StrokeKind::Outside,
                         );
@@ -103,7 +118,7 @@ pub fn toggle_pill_query(ui: &mut egui::Ui, t: &Tokens, active: &mut bool, label
     let text_color = if is_active { Color32::WHITE } else { t.text };
     let label_galley = layout_pill_label(ui, label, query, font, text_color);
     let w = label_galley.size().x;
-    let (rect, resp) = ui.allocate_exact_size(vec2(w + 20.0, 26.0), Sense::click());
+    let (rect, resp) = ui.allocate_exact_size(vec2(w + 28.0, TOGGLE_PILL_HEIGHT), Sense::click());
     resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::CheckBox, true, is_active, label));
 
     let (fill, stroke) = if is_active {
@@ -112,11 +127,16 @@ pub fn toggle_pill_query(ui: &mut egui::Ui, t: &Tokens, active: &mut bool, label
         let press = theme::Press::track(ui, &resp);
         (press.fill(t.field, t.hover, t.pressed), Stroke::new(1.0, t.border))
     };
-    ui.painter().rect(rect, CornerRadius::same(13), fill, stroke, egui::StrokeKind::Inside);
+    ui.painter().rect(rect, CornerRadius::same(TOGGLE_PILL_RADIUS), fill, stroke, egui::StrokeKind::Inside);
     ui.painter().galley(rect.center() - label_galley.size() / 2.0, label_galley, text_color);
 
     if resp.has_focus() {
-        ui.painter().rect_stroke(rect.expand(1.0), CornerRadius::same(14), Stroke::new(2.0, t.accent_text), egui::StrokeKind::Outside);
+        ui.painter().rect_stroke(
+            rect.expand(1.0),
+            CornerRadius::same(TOGGLE_PILL_RADIUS + 1),
+            Stroke::new(2.0, t.accent_text),
+            egui::StrokeKind::Outside,
+        );
     }
 
     let resp = theme::hand(resp);
@@ -546,6 +566,10 @@ pub(crate) fn preferences_body(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tok
 
     // Card 7: AI (bring your own model)
     let title7 = tl!("AI (bring your own model)");
+    // Opened from the Define card's settings: start at this section.
+    if std::mem::take(&mut app.prefs_show_ai) {
+        ui.scroll_to_cursor(Some(egui::Align::TOP));
+    }
     preference_card(ui, t, title7, Some("sparkles"), &mut ctx, |ui, ctx| {
         card_ai(ui, app, t, ctx);
     });
@@ -912,42 +936,131 @@ fn card_javascript(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, ctx: &m
 /// Content for Card 7: AI (bring your own model)
 fn card_ai(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, ctx: &mut PrefSearchContext) {
     use pdfcraft_ai::ProviderKind;
-    let mut on = app.ai.enabled;
-    if ctx.checkbox(ui, &mut on, tl!("Use my own model for Define"), t).changed() {
-        app.ai.enabled = on;
-        if on && !app.ai.notice_shown {
-            app.ai.notice_shown = true;
-            app.notify_tr(crate::ai_define::NOTICE);
-        }
-    }
-    ctx.label_secondary(ui, tl!(crate::ai_define::NOTICE), t);
-    ui.add_space(6.0);
+    ui.spacing_mut().item_spacing.y = 0.0;
     ui.horizontal(|ui| {
-        ctx.label_primary(ui, tl!("Provider"), t);
+        ui.spacing_mut().item_spacing.x = 12.0;
+        let mut on = app.ai.enabled;
+        let label = tl!("Use my own model for Define");
+        if crate::hotbar::toggle_switch(ui, &mut on, label, t).changed() {
+            app.ai.enabled = on;
+        }
+        ctx.label(ui, label, theme::regular(14.0), t.text);
+    });
+    if !app.ai.enabled {
+        // Off: only the switch and what it means; the rest appears once it is on.
+        ui.add_space(4.0);
+        let hint = format!("{} {}", tl!(crate::ai_define::NOTICE), tl!("Off until you turn it on."));
+        ai_hint(ui, ctx, &hint, t);
+        return;
+    }
+    if app.ai.notice_shown {
+        ui.add_space(4.0);
+        ai_hint(ui, ctx, tl!(crate::ai_define::NOTICE), t);
+    } else if ai_notice(ui, ctx, t) {
+        app.ai.notice_shown = true;
+    }
+    ui.add_space(AI_ROW_GAP);
+    let field = |ui: &mut egui::Ui, ctx: &mut PrefSearchContext, label: &str, text: &mut String, hint: &str| {
+        ai_row(ui, ctx, label, t, |ui, label| {
+            let field = crate::widgets::line(text).desired_width(ui.available_width().min(320.0)).min_size(vec2(0.0, AI_CONTROL_HEIGHT));
+            ui.add(field.align(egui::Align2::LEFT_CENTER).char_limit(1000).hint_text(hint)).labelled_by(label);
+        });
+    };
+    ai_row(ui, ctx, tl!("Provider"), t, |ui, _| {
         let mut kind = app.ai.provider.kind;
         let options = [(ProviderKind::Claude, "Claude"), (ProviderKind::Codex, "Codex"), (ProviderKind::Custom, tl!("Custom"))];
-        if ctx.pill_choice(ui, t, &mut kind, &options) {
+        if segmented_pill_choice(ui, t, &mut kind, &options) {
             app.ai.set_provider_kind(kind);
         }
     });
-    let field = |ui: &mut egui::Ui, ctx: &mut PrefSearchContext, label: &str, text: &mut String, hint: &str| {
-        ui.horizontal(|ui| {
-            let label = ctx.label_primary(ui, label, t);
-            ui.add(crate::widgets::line(text).desired_width(280.0).char_limit(1000).hint_text(hint)).labelled_by(label.id);
-        });
-    };
     if app.ai.provider.kind == ProviderKind::Custom {
-        field(ui, ctx, tl!("Command"), &mut app.ai.provider.custom, tl!("Reads the prompt on stdin, writes the answer"));
+        field(ui, ctx, tl!("Command"), &mut app.ai.provider.custom, "ollama run llama3.2");
+        // The command's rule, under it.
+        ui.horizontal(|ui| {
+            ui.add_space(AI_LABEL_WIDTH);
+            ctx.label(ui, tl!("Reads the prompt on stdin, writes the answer"), theme::regular(12.0), t.text_muted);
+        });
+        ui.add_space(AI_ROW_GAP);
     } else {
         field(ui, ctx, tl!("Model"), &mut app.ai.provider.model, tl!("Leave empty for the provider's default"));
         field(ui, ctx, tl!("Program"), &mut app.ai.provider.program, tl!("Leave empty to find it on PATH"));
     }
     field(ui, ctx, tl!("Answer language"), &mut app.ai.language, "English");
-    ui.add_space(6.0);
-    if widgets::pill_button(ui, tl!("Clear cache"), false).clicked() {
-        app.ai_cache.clear();
-        app.notify_tr("Define's saved answers were cleared.");
-    }
+    let saved = app.ai_cache.len();
+    ui.horizontal(|ui| {
+        ui.add_space(AI_LABEL_WIDTH);
+        ui.spacing_mut().item_spacing.x = 12.0;
+        if widgets::pill_button(ui, tl!("Clear cache"), false).clicked() {
+            app.ai_cache.clear();
+            app.notify_tr("Define's saved answers were cleared.");
+        }
+        let count = match saved {
+            0 => tl!("No saved answers").to_owned(),
+            1 => tl!("1 saved answer").to_owned(),
+            n => crate::i18n::fmt(tl!("{n} saved answers"), &[("n", &n.to_string())]),
+        };
+        ctx.label(ui, &count, theme::regular(13.0), t.text_muted);
+    });
+}
+
+/// Preferences ▸ AI: the label column, the gap between rows and the controls' height.
+const AI_LABEL_WIDTH: f32 = 140.0;
+const AI_ROW_GAP: f32 = 12.0;
+const AI_CONTROL_HEIGHT: f32 = 32.0;
+
+/// One Preferences ▸ AI row: `label` in the 140 label column, the control beside it, then the gap
+/// to the next row. The control gets the label's id, to be labelled by it.
+fn ai_row(ui: &mut egui::Ui, ctx: &mut PrefSearchContext, label: &str, t: &Tokens, control: impl FnOnce(&mut egui::Ui, egui::Id)) {
+    ui.horizontal(|ui| {
+        ui.set_min_height(AI_CONTROL_HEIGHT);
+        ui.spacing_mut().item_spacing.x = 0.0;
+        let label = ui.allocate_ui_with_layout(vec2(AI_LABEL_WIDTH, AI_CONTROL_HEIGHT), egui::Layout::left_to_right(egui::Align::Center), |ui| {
+            ui.set_width(AI_LABEL_WIDTH);
+            ctx.label(ui, label, theme::regular(14.0), t.text).id
+        });
+        control(ui, label.inner);
+    });
+    ui.add_space(AI_ROW_GAP);
+}
+
+/// The hint under the Define switch.
+fn ai_hint(ui: &mut egui::Ui, ctx: &mut PrefSearchContext, text: &str, t: &Tokens) {
+    ui.horizontal_wrapped(|ui| {
+        // Under the label, past the switch.
+        ui.add_space(34.0 + 12.0);
+        ctx.label(ui, text, theme::regular(13.0), t.text_muted);
+    });
+}
+
+/// The once-only notice under the switch, on an accent-soft panel, until "Got it" is pressed
+/// (true then). It replaces the toast that could vanish before it was read.
+fn ai_notice(ui: &mut egui::Ui, ctx: &mut PrefSearchContext, t: &Tokens) -> bool {
+    ui.add_space(12.0);
+    let mut got_it = false;
+    egui::Frame::new().fill(t.accent_soft).corner_radius(CornerRadius::same(8)).inner_margin(Margin::same(12)).show(ui, |ui| {
+        ui.set_width(ui.available_width());
+        // Top-aligned, with the icon and the first line of text centred on the button's 28 px,
+        // so a notice that wraps keeps them on one line.
+        ui.with_layout(egui::Layout::left_to_right(egui::Align::Min), |ui| {
+            ui.spacing_mut().item_spacing = vec2(12.0, 0.0);
+            ui.vertical(|ui| {
+                ui.add_space(6.0);
+                ui.add(icons::image("info", 16.0, t.accent_text));
+            });
+            let button = crate::bidi::layout_ui(ui, tl!("Got it").to_owned(), theme::medium(12.5), t.text).size().x + 26.0;
+            let room = (ui.available_width() - button - 12.0).max(80.0);
+            ui.vertical(|ui| {
+                ui.set_width(room);
+                ui.add_space(5.0);
+                ui.horizontal_wrapped(|ui| {
+                    ui.spacing_mut().item_spacing.y = 2.0;
+                    ctx.label(ui, tl!(crate::ai_define::NOTICE), theme::regular(13.0), t.text);
+                });
+            });
+            got_it = widgets::pill_button(ui, tl!("Got it"), false).clicked();
+        });
+    });
+    got_it
 }
 
 /// Preferences dialog buttons: OK on the right. Returns true to close.
@@ -1125,6 +1238,35 @@ fn reading_colours_section(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The segmented control's track and its segments are concentric pills: the gap between them is
+    /// the same all round, and a lone toggle pill beside the track is as tall as it.
+    /// Drawn, the track keeps the same gap above, below and at the ends of its segments.
+    #[test]
+    fn segmented_track_has_the_same_gap_on_every_side() {
+        let ctx = egui::Context::default();
+        crate::theme::apply(&ctx, ThemeKind::Light);
+        let t = Tokens::for_kind(ThemeKind::Light);
+        let mut track = Rect::NOTHING;
+        let output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let mut current = 0;
+            track = ui.scope(|ui| segmented_pill_choice(ui, &t, &mut current, &[(0, "Claude"), (1, "Codex")])).response.rect;
+        });
+        output.drop_without_applying_deltas();
+        let expected = SEGMENT_HEIGHT + 2.0 * f32::from(SEGMENT_PAD) + 2.0;
+        assert_eq!(track.height(), expected, "no extra row height around the segments");
+    }
+
+    #[test]
+    fn segmented_track_and_segments_are_concentric() {
+        let pad = f32::from(SEGMENT_PAD);
+        let track = SEGMENT_HEIGHT + 2.0 * pad + 2.0;
+        assert_eq!(f32::from(SEGMENT_RADIUS) * 2.0, SEGMENT_HEIGHT, "segments are full pills");
+        assert_eq!(f32::from(SEGMENT_TRACK_RADIUS) * 2.0, track, "the track is a full pill");
+        assert_eq!(f32::from(SEGMENT_TRACK_RADIUS) - f32::from(SEGMENT_RADIUS), pad + 1.0, "one gap all round");
+        assert_eq!(TOGGLE_PILL_HEIGHT, track);
+        assert_eq!(f32::from(TOGGLE_PILL_RADIUS) * 2.0, TOGGLE_PILL_HEIGHT);
+    }
 
     #[test]
     fn test_find_match_ranges_case_insensitive() {

@@ -542,7 +542,7 @@ fn active_tool_controls(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, ve
 }
 
 /// Render a modern iOS-style pill toggle switch.
-fn toggle_switch(ui: &mut egui::Ui, on: &mut bool, label: &str, t: &Tokens) -> egui::Response {
+pub(crate) fn toggle_switch(ui: &mut egui::Ui, on: &mut bool, label: &str, t: &Tokens) -> egui::Response {
     let width = 34.0;
     let height = 18.0;
     let (rect, mut response) = ui.allocate_exact_size(vec2(width, height), Sense::click());
