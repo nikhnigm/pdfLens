@@ -9,13 +9,16 @@
 // The settings object in `persist` is one `json!` literal past the default limit of 128.
 #![recursion_limit = "256"]
 
-/// PdfCraft as craft-update knows it, with its 128 px icon and accent colour: the update
-/// prompt shows both, and an AppImage's menu entry gets the icon.
+/// PdfLens as craft-update knows it: its releases come only from this fork, as
+/// `pdflens-<version>-windows-<arch>.msi`, never from the official PdfCraft repository. The update
+/// prompt shows the 128 px icon and accent colour, and an AppImage's menu entry gets the icon.
 #[cfg(not(target_arch = "wasm32"))]
 pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
     icon_png: Some(include_bytes!("../../../assets/app-icon/hicolor/128x128/apps/ai.storyteller.pdfcraft.png")),
     accent: Some([0xb7, 0x02, 0x28]),
-    ..craft_update::suite::PDFCRAFT
+    developer: "nikhnigm",
+    bundle_id_override: Some("io.github.nikhnigm.pdflens"),
+    ..craft_update::app::App::new("pdflens", APP_NAME, "Reading PDFs, with word lookup", "nikhnigm/pdfcraft")
 };
 
 use crate::control::Host as _;
@@ -42,6 +45,7 @@ pub use combine_ui::{Columns as CombineColumns, CombineView, Lock as CombineLock
 mod commands;
 pub mod control;
 mod menus;
+pub use menus::APP_NAME;
 mod properties_session;
 /// Header & footer / watermark / background dialog types (tests and automation).
 pub mod marks {
@@ -858,8 +862,6 @@ pub struct PdfCraftApp {
     pub replace_draft: Option<files::ReplaceDraft>,
     /// The last web link the app asked the system to open (tests and automation).
     pub last_opened_url: Option<String>,
-    /// The home screen's community card was closed; it comes back next launch (not remembered).
-    pub community_card_closed: bool,
     /// A document asked to open this address; the user hasn't answered yet (#90, #91).
     pub pending_link: Option<PendingLink>,
     /// A document just opened asks to be shown in Full Screen mode (`/PageMode /FullScreen`):

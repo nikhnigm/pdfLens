@@ -1,0 +1,104 @@
+name: PdfLens release
+
+# PdfLens is a fork, so it cannot use the shared release workflow (that one needs storytold's
+# signing secrets and paid macOS runners). This builds the Windows x64 installer and portable zip,
+# unsigned, and drafts a GitHub Release for the owner to publish. The app's update check reads
+# published releases of this repository, so nothing reaches users until the draft is published.
+#
+# Release: set the version with `cargo xtask version set X.Y.Z`, merge that to main, then push the
+# tag `vX.Y.Z` on that commit.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pdflens-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+    env:
+      CARGO_TERM_COLOR: always
+      CARGO_INCREMENTAL: 0
+      RUST_BACKTRACE: 1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Read the version
+        id: version
+        shell: bash
+        run: |
+          version=$(awk '/^\[workspace.package\]/{p=1;next} /^\[/{p=0} p && /^version *=/{gsub(/"/,"",$3); print $3; exit}' Cargo.toml)
+          [ -n "$version" ] || { echo "::error::no [workspace.package] version in Cargo.toml"; exit 1; }
+          # A tag must name the version it builds, or the update check would compare the wrong numbers.
+          if [ "${GITHUB_REF_TYPE}" = tag ] && [ "${GITHUB_REF_NAME}" != "v$version" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match Cargo.toml version $version (expected v$version)"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "PDFCRAFT_VERSION=$version" >> "$GITHUB_ENV"
+          echo "PDFCRAFT_BUILD_DATE=$(date -u +%Y-%m-%d)" >> "$GITHUB_ENV"
+          echo "PDFCRAFT_BUILD_SHA=${GITHUB_SHA}" >> "$GITHUB_ENV"
+
+      # Japanese fonts and translations, at the same pins the official PdfCraft release uses.
+      - name: Check out craft-fonts
+        uses: storytold/craft-common-actions/actions/checkout-craft-fonts@59d1ecc4ea15ab59f8d60d38b147d5016c1f1385
+        with:
+          ref: b076417b5880bd4154bd22f00695b1d28c6bea83
+      - name: Check out craft-i18n
+        uses: storytold/craft-common-actions/actions/checkout-craft-i18n@59d1ecc4ea15ab59f8d60d38b147d5016c1f1385
+
+      - uses: step-security/dtolnay-rust-toolchain@8dd607977d06adf4ed49b190381e74c17a9dd25f # v1.0.0
+        with:
+          toolchain: stable
+          targets: x86_64-pc-windows-msvc
+      - uses: step-security/rust-cache@8871c8ba063416da7c32246932ea6ae08700453e # v2.9.2
+        with:
+          key: pdflens-release-windows-x64
+
+      - name: Install WiX
+        uses: storytold/craft-common-actions/actions/install-wix@59d1ecc4ea15ab59f8d60d38b147d5016c1f1385
+
+      - name: Build and package
+        shell: pwsh
+        env:
+          CRAFT_FONTS_DIR: ${{ github.workspace }}/craft-fonts
+          CRAFT_FONTS_REQUIRED: "1"
+          PDFCRAFT_REQUIRE_WINRES: "1"
+        run: ./packaging/windows/package.ps1 -Arch x64
+
+      - name: Checksums
+        shell: bash
+        run: |
+          cd dist/release
+          sha256sum pdflens-*.msi pdflens-*.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pdflens-windows-x64
+          path: dist/release/*
+          if-no-files-found: error
+
+      - name: Draft the GitHub Release
+        if: github.ref_type == 'tag'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "$TAG" --draft --verify-tag --title "PdfLens $VERSION" --generate-notes \
+            dist/release/pdflens-*.msi dist/release/pdflens-*.zip dist/release/SHA256SUMS.txt
