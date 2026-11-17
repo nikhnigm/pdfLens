@@ -23,7 +23,8 @@ command -v resvg >/dev/null || { echo "error: resvg not found (brew install resv
 MAC="$TMP/macos.svg"
 {
   echo '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024">'
-  echo '<image x="100" y="100" width="824" height="824" xlink:href="'"$SVG"'"/>'
+  # resvg on Windows needs a native path for the href (cygpath turns /d/... into D:/...).
+  echo '<image x="100" y="100" width="824" height="824" xlink:href="'"$(cygpath -m "$SVG" 2>/dev/null || echo "$SVG")"'"/>'
   echo '</svg>'
 } >"$MAC"
 
@@ -32,13 +33,22 @@ render() {
   resvg -w "$size" -h "$size" "$src" "$out" </dev/null
 }
 
+# 16 and 24 px app icons come from hand-fitted masters (pdfcraft-16.svg, pdfcraft-24.svg) that sit
+# on the pixel grid; every other size is rendered from the main master.
+app_src() {
+  case "$1" in
+    16|24) echo "$DIR/pdfcraft-$1.svg" ;;
+    *) echo "$SVG" ;;
+  esac
+}
+
 # 1024 px PNG on Apple's grid (also the runtime Dock icon on macOS, see apps/pdfcraft/src/main.rs).
 render "$MAC" 1024 "$DIR/pdfcraft-1024.png"
 
 # Linux hicolor theme (full bleed; hicolor/256x256 is also the runtime icon on Windows and Linux).
 for s in 16 24 32 48 64 128 256 512; do
   mkdir -p "$DIR/hicolor/${s}x${s}/apps"
-  render "$SVG" "$s" "$DIR/hicolor/${s}x${s}/apps/$ID.png"
+  render "$(app_src "$s")" "$s" "$DIR/hicolor/${s}x${s}/apps/$ID.png"
 done
 mkdir -p "$DIR/hicolor/scalable/apps"
 cp "$SVG" "$DIR/hicolor/scalable/apps/$ID.svg"
@@ -48,7 +58,9 @@ cp "$SVG" "$DIR/hicolor/scalable/apps/$ID.svg"
 for name in pdfcraft pdfcraft-document; do
   ICO_PNGS=()
   for s in 16 20 24 32 40 48 64 128 256; do
-    render "$DIR/$name.svg" "$s" "$TMP/$name-$s.png"
+    src="$DIR/$name.svg"
+    [ "$name" = pdfcraft ] && src="$(app_src "$s")"
+    render "$src" "$s" "$TMP/$name-$s.png"
     ICO_PNGS+=("$TMP/$name-$s.png")
   done
   python3 - "$DIR/$name.ico" "${ICO_PNGS[@]}" <<'PY'
@@ -75,7 +87,10 @@ if command -v iconutil >/dev/null; then
     render "$MAC" $((s * 2)) "$SET/icon_${s}x${s}@2x.png"
   done
   iconutil -c icns -o "$DIR/pdfcraft.icns" "$SET"
+elif python3 -c "import PIL" 2>/dev/null; then
+  # Elsewhere, Pillow writes the .icns from the 1024 px Apple-grid PNG.
+  python3 -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).save(sys.argv[2])'     "$DIR/pdfcraft-1024.png" "$DIR/pdfcraft.icns"
 else
-  echo "warning: iconutil not found (macOS only); pdfcraft.icns not regenerated" >&2
+  echo "warning: neither iconutil (macOS) nor Pillow found; pdfcraft.icns not regenerated" >&2
 fi
 echo "icons written to $DIR"

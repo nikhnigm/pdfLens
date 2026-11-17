@@ -7,6 +7,10 @@ PdfLens is a modified version of PdfCraft (https://github.com/storytold/pdfcraft
 https://github.com/nikhnigm/pdfcraft. It is not made, sponsored or endorsed by the ArtCraft Team,
 and it carries none of the ArtCraft marks.
 
+Modified by nikhnigm in 2026: added the AI "Define a word" lookup, its own name, settings and
+Windows release and update channel, and a new logo and app icon (docs/brand, assets/app-icon).
+The full list of changes is in the git history of the repository above.
+
 Third-party material
 
 - edit-session 0.1.0-alpha.2, Copyright (c) 2026 PerchAnton. See vendor/edit-session/LICENSE-MIT and vendor/edit-session/LICENSE-APACHE.
