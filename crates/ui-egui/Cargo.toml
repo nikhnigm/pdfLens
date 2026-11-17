@@ -22,6 +22,7 @@ craft-i18n = { workspace = true }
 craft-quit = { workspace = true, features = ["egui"] }
 pdfcraft-fonts = { workspace = true }
 pdfcraft-engine = { workspace = true }
+pdfcraft-ai = { workspace = true }
 pdfcraft-cos = { workspace = true }
 pdfcraft-content = { workspace = true }
 pdfcraft-ocr = { workspace = true }

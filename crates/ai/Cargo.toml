@@ -1,0 +1,18 @@
+[package]
+name = "pdfcraft-ai"
+description = "Bring your own model: ask the user's own AI tool (Claude CLI, Codex CLI or a custom command) about selected text"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+serde_json.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+tempfile = "3.27"

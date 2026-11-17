@@ -471,6 +471,8 @@ fn app_creator<'a>(
         if let Some(json) = cc.storage.and_then(|s| s.get_string("pdfcraft").or_else(|| s.get_string(LEGACY_STORAGE_KEY))) {
             app.restore(&json);
         }
+        // Define's saved answers live beside the settings.
+        app.set_ai_cache_dir(settings_dir());
         app.window_state = pdfcraft_ui_egui::window_state::WindowState::started_with(cc.storage);
         app.integrated_titlebar = integrated;
         app.window_controls = window_controls;

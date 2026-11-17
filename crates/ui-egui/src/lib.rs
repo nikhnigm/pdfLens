@@ -87,6 +87,8 @@ pub use recovery::{AUTOSAVE_SECS, RecoveryMeta, RecoveryStore, default_dictionar
 use theme::{ThemeKind, ThemePreference};
 pub use workflows::ocr_verify::{OcrVerify, Phase};
 
+mod ai_define;
+pub use ai_define::{AiPrefs, DefinePopup, DefineState};
 mod app;
 mod frame_guard;
 mod hooks;
@@ -838,6 +840,13 @@ pub struct PdfCraftApp {
     /// properties default" ticked left), and the values before the dialog opened, for Cancel.
     pub redact_defaults: RedactPrefs,
     pub redact_before: Option<RedactPrefs>,
+    /// Define's preferences (bring your own model; off by default).
+    pub ai: AiPrefs,
+    pub(crate) ai_cache: ai_define::AiCache,
+    /// The Define popup, while it is open.
+    pub define_popup: Option<DefinePopup>,
+    /// Where the user last dragged the Define popup; later lookups open there.
+    pub define_pos: Option<egui::Pos2>,
     pub redact_pages_draft: RedactPagesDraft,
     pub redact_search: RedactSearchDraft,
     pub hidden_draft: HiddenDraft,

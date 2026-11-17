@@ -14761,3 +14761,22 @@ fn grouped_existing_thai_body_edits_saves_reopens_and_undo_restores_original_gly
     assert_eq!(page_text(&mut a, reopened), [new, old]);
     assert_eq!(ok(&mut a, "content_list", json!({"doc":reopened}))["count"], 0, "editing existing text must not create Add Text objects");
 }
+
+#[test]
+fn ai_define_runs_a_custom_provider() {
+    let dir = workdir("ai-define");
+    let mut a = auto(&dir);
+    let command = if cfg!(windows) { "cmd /C echo Brief." } else { "sh -c \"echo Brief.\"" };
+    let answer =
+        ok(&mut a, "ai_define", json!({ "word": "ephemeral", "sentence": "Its fame was ephemeral.", "provider": "custom", "command": command }));
+    assert_eq!(answer["meaning"], "Brief.");
+    let long = a.call("ai_define", &json!({ "word": "one two three four", "sentence": "x", "provider": "custom", "command": command })).unwrap_err();
+    assert!(long.to_string().contains("1–3 words"), "{long}");
+    let no_command = a.call("ai_define", &json!({ "word": "ephemeral", "sentence": "x", "provider": "custom" })).unwrap_err();
+    assert!(no_command.to_string().contains("command"), "{no_command}");
+    let unknown = a.call("ai_define", &json!({ "word": "ephemeral", "sentence": "x", "provider": "gemini" })).unwrap_err();
+    assert!(unknown.to_string().contains("claude, codex, custom"), "{unknown}");
+    let def = tools().into_iter().find(|t| t.name == "ai_define").unwrap();
+    // It runs a program the caller names: never advertised as a harmless read.
+    assert!(!def.read_only && def.destructive);
+}

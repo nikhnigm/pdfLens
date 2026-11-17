@@ -37,6 +37,7 @@ mod content;
 mod control;
 mod create;
 mod date_format;
+mod define;
 mod dialog_chrome;
 mod document_links;
 mod download_mime;

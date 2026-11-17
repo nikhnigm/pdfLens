@@ -557,9 +557,13 @@ fn tool_json(t: &crate::ToolDef) -> Value {
         "title": t.title,
         "description": t.description,
         "inputSchema": t.input_schema,
-        "annotations": { "title": t.title, "readOnlyHint": t.read_only, "destructiveHint": t.destructive, "idempotentHint": t.read_only || matches!(t.name, "doc_save" | "doc_optimize" | "doc_export_data" | "measure_export" | "doc_export_images" | "doc_export_office" | "doc_export_all_images" | "doc_export_text" | "image_save" | "bookmark_export"), "openWorldHint": false },
+        "annotations": { "title": t.title, "readOnlyHint": t.read_only, "destructiveHint": t.destructive, "idempotentHint": t.read_only || matches!(t.name, "doc_save" | "doc_optimize" | "doc_export_data" | "measure_export" | "doc_export_images" | "doc_export_office" | "doc_export_all_images" | "doc_export_text" | "image_save" | "bookmark_export"), "openWorldHint": OPEN_WORLD.contains(&t.name) },
     })
 }
+
+/// Tools that reach outside PdfCraft: they run a program the caller chooses, which may send what
+/// it is given to an online service.
+const OPEN_WORLD: &[&str] = &["ai_define"];
 
 fn call_result(content: Vec<Content>) -> Value {
     let mut structured = None;
@@ -593,6 +597,19 @@ mod tests {
 
     use super::{McpServer, Resource, first_sentence, parse_uri};
     use crate::Automation;
+
+    /// ai_define starts a program of the caller's choosing and sends text to an outside model, so
+    /// clients must not auto-approve it as a harmless read.
+    #[test]
+    fn ai_define_is_advertised_as_running_outside_programs() {
+        let def = crate::tools().into_iter().find(|t| t.name == "ai_define").unwrap();
+        let a = &super::tool_json(&def)["annotations"];
+        assert_eq!(
+            (a["readOnlyHint"].as_bool(), a["openWorldHint"].as_bool(), a["idempotentHint"].as_bool()),
+            (Some(false), Some(true), Some(false)),
+            "{a}"
+        );
+    }
 
     #[test]
     fn conventions_panic_is_a_tool_error() {

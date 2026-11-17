@@ -538,6 +538,7 @@ pub static TOOL_GROUPS: &[ToolGroup] = &[
         sections: &[ToolSection {
             title: "Bring your own model (off by default)",
             items: &[
+                item("Define word", "book-open", "ai.define", Ready),
                 item("Summarize", "sparkles", "ai.summary", Provider),
                 item("Ask about this document", "message-circle-reply", "ai.ask", Provider),
                 item("Translate", "languages", "ai.translate", Provider),
@@ -571,6 +572,17 @@ pub static TOOL_CATEGORIES: &[ToolCategory] = &[
 mod tests {
     use super::*;
     use std::collections::HashSet;
+
+    #[test]
+    fn ai_define_is_registered_ready_with_a_free_shortcut() {
+        use crate::commands::{COMMANDS, Shortcut, command};
+        let spec = command("ai.define").expect("ai.define is registered");
+        assert_eq!(spec.shortcut_for(false), Some(Shortcut::cmd_shift("D")));
+        let same: Vec<_> = COMMANDS.iter().filter(|c| c.shortcut_for(false) == Some(Shortcut::cmd_shift("D"))).map(|c| c.id).collect();
+        assert_eq!(same, ["ai.define"], "⇧⌘D belongs to one command");
+        let item = group("ai").into_iter().flat_map(|g| g.sections.iter().flat_map(|s| s.items.iter())).find(|i| i.command == "ai.define");
+        assert!(matches!(item.map(|i| i.availability), Some(Availability::Ready)));
+    }
 
     #[test]
     fn ids_are_unique_and_every_group_has_items() {
