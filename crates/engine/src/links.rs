@@ -21,8 +21,8 @@ pub struct Link {
 }
 
 /// PdfLens, this fork: where it is developed and released.
-pub const FORK_GITHUB: &str = "https://github.com/nikhnigm/pdfcraft";
-pub const FORK_RELEASES: &str = "https://github.com/nikhnigm/pdfcraft/releases";
+pub const FORK_GITHUB: &str = "https://github.com/nikhnigm/pdfLens";
+pub const FORK_RELEASES: &str = "https://github.com/nikhnigm/pdfLens/releases";
 
 /// In the order they are shown. PdfLens is a fork, so its own pages come first and PdfCraft is
 /// named only as what it is based on: nothing here presents the fork as an ArtCraft product.

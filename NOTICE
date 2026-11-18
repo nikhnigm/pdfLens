@@ -4,7 +4,7 @@ Licensed under the MIT License or the Apache License, Version 2.0, at your optio
 (LICENSE-MIT, LICENSE-APACHE).
 
 PdfLens is a modified version of PdfCraft (https://github.com/storytold/pdfcraft), maintained at
-https://github.com/nikhnigm/pdfcraft. It is not made, sponsored or endorsed by the ArtCraft Team,
+https://github.com/nikhnigm/pdfLens. It is not made, sponsored or endorsed by the ArtCraft Team,
 and it carries none of the ArtCraft marks.
 
 Modified by nikhnigm in 2026: added the AI "Define a word" lookup, its own name, settings and

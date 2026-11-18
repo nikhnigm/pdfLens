@@ -7,14 +7,14 @@
 
 <p align="center">
   <b>A PDF reader that tells you what a word means, right where you read it.</b><br>
-  <a href="https://github.com/nikhnigm/pdfcraft/releases/latest"><b>Download for Windows</b></a> ·
-  <a href="https://github.com/nikhnigm/pdfcraft/issues">Report a problem</a>
+  <a href="https://github.com/nikhnigm/pdfLens/releases/latest"><b>Download for Windows</b></a> ·
+  <a href="https://github.com/nikhnigm/pdfLens/issues">Report a problem</a>
 </p>
 
 ## Install
 
 1. Download `pdflens-<version>-windows-x64.msi` (or the `-portable.zip`) from the
-   [latest release](https://github.com/nikhnigm/pdfcraft/releases/latest).
+   [latest release](https://github.com/nikhnigm/pdfLens/releases/latest).
 2. Run it. The installer is not code-signed yet: if Windows shows **Windows protected your PC**,
    choose **More info ▸ Run anyway**.
 3. Optional: check the download against `SHA256SUMS.txt` on the release.
