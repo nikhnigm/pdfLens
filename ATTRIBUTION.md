@@ -4,7 +4,7 @@
 
 Every asset PdfCraft includes, bundles or uses to build its published material, with its author, source and licence. The policy is in [AGENTS.md](AGENTS.md) §1. The machine-readable list, with the SHA-256 of every asset, is [ATTRIBUTION.toml](ATTRIBUTION.toml). Licence texts are kept beside the assets and summarised in [NOTICE](NOTICE).
 
-## In this repository (256)
+## In this repository (257)
 
 | Asset | Title | Author | Licence | Source | Used for |
 |---|---|---|---|---|---|
@@ -263,7 +263,8 @@ Every asset PdfCraft includes, bundles or uses to build its published material, 
 | `assets/icons/move-horizontal.svg` | Lucide icon "move-horizontal" | Lucide Contributors (portions Cole Bemis, Feather) | ISC AND MIT | https://github.com/lucide-icons/lucide (npm lucide-static 1.49.0, icons/move-horizontal.svg) | UI icon, embedded via crates/ui-egui/src/icon_data.rs |
 | `docs/brand/pdflens-lockup.svg` | PdfLens logo lockup (light background) | PdfLens maintainer (nikhnigm) | MIT OR Apache-2.0 | Contributor-original; wordmark outlined from Inter SemiBold (OFL-1.1) | README header on light themes |
 | `docs/brand/pdflens-lockup-dark.svg` | PdfLens logo lockup (dark background) | PdfLens maintainer (nikhnigm) | MIT OR Apache-2.0 | Contributor-original; wordmark outlined from Inter SemiBold (OFL-1.1) | README header on dark themes |
-| `docs/brand/pdflens-icon.svg` | PdfLens app tile | PdfLens maintainer (nikhnigm) | MIT OR Apache-2.0 | Contributor-original; wordmark outlined from Inter SemiBold (OFL-1.1) | Square logo for docs and release pages |
+| `docs/brand/pdflens-mark.svg` | PdfLens mark | PdfLens maintainer (nikhnigm) | MIT OR Apache-2.0 | Contributor-original; wordmark outlined from Inter SemiBold (OFL-1.1) | Standalone mark for docs |
+| `docs/brand/pdflens-icon-light.svg` | PdfLens app tile (light) | PdfLens maintainer (nikhnigm) | MIT OR Apache-2.0 | Contributor-original; wordmark outlined from Inter SemiBold (OFL-1.1) | Square icon for docs and release pages |
 
 ## Compiled in through dependencies (8)
 
