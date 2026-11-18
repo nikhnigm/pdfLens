@@ -46,6 +46,17 @@ fn usage_lists_mcp_only_when_built_with_it() {
     assert!(stdout.contains("pdfcraft-cli ui     --control FILE"), "{stdout}");
 }
 
+/// PdfLens is a fork: help points to its own issue tracker, never to the ArtCraft community,
+/// whose brand terms bar a modified version from presenting itself as theirs (NOTICE).
+#[test]
+fn help_points_to_the_pdflens_issue_tracker() {
+    let out = run(&["--help"]);
+    let stdout = text(&out.stdout);
+    assert!(stdout.contains("help and feedback: https://github.com/nikhnigm/pdfLens/issues"), "{stdout}");
+    assert!(!stdout.to_lowercase().contains("artcraft"), "{stdout}");
+    assert!(!stdout.contains("discord"), "{stdout}");
+}
+
 #[cfg(not(feature = "mcp"))]
 #[test]
 fn mcp_without_the_feature_says_it_was_left_out() {
