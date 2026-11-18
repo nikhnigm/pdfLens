@@ -18,7 +18,7 @@ pub const UPDATE_APP: craft_update::app::App = craft_update::app::App {
     accent: Some([0xb7, 0x02, 0x28]),
     developer: "nikhnigm",
     bundle_id_override: Some("io.github.nikhnigm.pdflens"),
-    ..craft_update::app::App::new("pdflens", APP_NAME, "Reading PDFs, with word lookup", "nikhnigm/pdfcraft")
+    ..craft_update::app::App::new("pdflens", APP_NAME, "Reading PDFs, with word lookup", "nikhnigm/pdfLens")
 };
 
 use crate::control::Host as _;

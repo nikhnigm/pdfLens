@@ -11,7 +11,7 @@ fn release(tag: &str) -> craft_update::Release {
     craft_update::Release {
         tag: tag.to_string(),
         version: craft_update::parse_version(tag),
-        html_url: format!("https://github.com/nikhnigm/pdfcraft/releases/tag/{tag}"),
+        html_url: format!("https://github.com/nikhnigm/pdfLens/releases/tag/{tag}"),
         ..Default::default()
     }
 }
@@ -244,10 +244,26 @@ fn later_on_the_startup_prompt(h: &mut Harness<'static, PdfCraftApp>) {
 #[test]
 fn updates_come_only_from_the_fork() {
     let app = pdfcraft_ui_egui::UPDATE_APP;
-    assert_eq!(app.repo, "nikhnigm/pdfcraft");
+    // Exactly as GitHub spells it: release and download links are compared with it letter for letter.
+    assert_eq!(app.repo, "nikhnigm/pdfLens");
     assert_eq!(app.id, "pdflens", "release assets are pdflens-<version>-windows-<arch>.msi");
     assert_eq!(app.name, pdfcraft_ui_egui::APP_NAME);
     assert!(app.former_ids.is_empty() && app.former_names.is_empty());
     assert_ne!(app.developer, "ArtCraft");
-    assert_eq!(pdfcraft_ui_egui::updates::RELEASES_PAGE, "https://github.com/nikhnigm/pdfcraft/releases");
+    assert_eq!(pdfcraft_ui_egui::updates::RELEASES_PAGE, "https://github.com/nikhnigm/pdfLens/releases");
+}
+
+/// A release as GitHub lists it for the renamed repository keeps its page and its installer: both
+/// links are checked against `UPDATE_APP.repo` letter for letter, so a wrong spelling would leave
+/// the prompt pointing at the bare releases list and the installer dropped.
+#[test]
+fn a_release_of_the_renamed_repository_keeps_its_page_and_installer() {
+    let app = pdfcraft_ui_egui::UPDATE_APP;
+    let json = r#"[{"tag_name":"v9.0.0","draft":false,"prerelease":false,
+        "html_url":"https://github.com/nikhnigm/pdfLens/releases/tag/v9.0.0",
+        "assets":[{"name":"pdflens-9.0.0-windows-x64.msi","size":1,
+          "browser_download_url":"https://github.com/nikhnigm/pdfLens/releases/download/v9.0.0/pdflens-9.0.0-windows-x64.msi"}]}]"#;
+    let release = craft_update::parse_github_release_list(json, app.repo, false).unwrap().unwrap();
+    assert_eq!(release.html_url, "https://github.com/nikhnigm/pdfLens/releases/tag/v9.0.0");
+    assert_eq!(release.assets.iter().map(|a| a.name.as_str()).collect::<Vec<_>>(), ["pdflens-9.0.0-windows-x64.msi"]);
 }

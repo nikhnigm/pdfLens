@@ -31,7 +31,7 @@ fn no_artcraft_marks_or_discord_anywhere() {
 
 #[test]
 fn links_point_at_the_fork() {
-    assert_eq!(links::LINKS.first().map(|l| l.url), Some("https://github.com/nikhnigm/pdfcraft/releases"));
+    assert_eq!(links::LINKS.first().map(|l| l.url), Some("https://github.com/nikhnigm/pdfLens/releases"));
     assert!(links::LINKS.iter().all(|l| !l.url.contains("getartcraft") && !l.url.contains("discord")));
 }
 
