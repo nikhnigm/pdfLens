@@ -3204,25 +3204,14 @@ sha256 = "864ab2f19254e6ac7240bc6a98323197332e8f714d4d3f94831f41309e5ef2f7"
 
 [[asset]]
 path = "docs/brand/pdflens-lockup.svg"
-title = "PdfLens logo lockup (light background)"
+title = "PdfLens logo lockup"
 author = "PdfLens maintainer (nikhnigm)"
 source = "Contributor-original; wordmark outlined from Inter SemiBold (OFL-1.1)"
 licence = "MIT OR Apache-2.0"
 licence_file = "docs/brand/LICENSE.txt"
 kind = "logo"
-usage = "README header on light themes"
-sha256 = "bdf933ff37a5fe1c0965eccedbe0e437457d60d05f320f0f0032725d03776e87"
-
-[[asset]]
-path = "docs/brand/pdflens-lockup-dark.svg"
-title = "PdfLens logo lockup (dark background)"
-author = "PdfLens maintainer (nikhnigm)"
-source = "Contributor-original; wordmark outlined from Inter SemiBold (OFL-1.1)"
-licence = "MIT OR Apache-2.0"
-licence_file = "docs/brand/LICENSE.txt"
-kind = "logo"
-usage = "README header on dark themes"
-sha256 = "1b71372a2108cf0bf55b4c356fd0d3c24604323a7c06b5bec2f3e92dcf018963"
+usage = "README header (light and dark themes)"
+sha256 = "15481f9133d4f5a10061e0d310f3a9638cdc787bb30524a0d49ca928e69f9f39"
 
 [[asset]]
 path = "docs/brand/pdflens-icon.svg"

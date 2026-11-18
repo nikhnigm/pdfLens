@@ -1,4 +1,4 @@
-PdfLens logo (pdflens-lockup.svg, pdflens-lockup-dark.svg, pdflens-icon.svg).
+PdfLens logo (pdflens-lockup.svg, pdflens-icon.svg).
 
 Original artwork made for PdfLens by its maintainer (no third-party material). The wordmark is
 Inter SemiBold (SIL Open Font License 1.1, assets/fonts/Inter-SemiBold.ttf) converted to outlines.

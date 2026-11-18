@@ -1,8 +1,5 @@
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/pdflens-lockup-dark.svg">
-    <img src="docs/brand/pdflens-lockup.svg" width="360" alt="PdfLens">
-  </picture>
+  <img src="docs/brand/pdflens-lockup.svg" width="360" alt="PdfLens">
 </p>
 
 <p align="center">
