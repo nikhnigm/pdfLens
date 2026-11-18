@@ -98,8 +98,10 @@ fn a_very_tall_window_does_not_leave_a_blank_gap_above_ok() {
     let mut h = harness(3200.0);
     h.run_steps(6);
     let ok = h.get_by_label("OK").rect();
-    // The last card is AI (bring your own model); Clear cache is its last control.
-    let last = h.get_by_label("Clear cache").rect();
+    // The last card is AI (bring your own model); while it is off, its switch is its last control.
+    // The switch and its text share the label; either way it is the lowest control.
+    let last =
+        h.query_all_by_label("Use my own model for Define").map(|n| n.rect()).max_by(|a, b| a.max.y.total_cmp(&b.max.y)).expect("the AI switch");
     assert!(on_screen(ok, 3200.0) && on_screen(last, 3200.0), "{last:?} {ok:?}");
     assert!(ok.min.y - last.max.y < 120.0, "a gap of {} pt between the last setting and OK", ok.min.y - last.max.y);
 }

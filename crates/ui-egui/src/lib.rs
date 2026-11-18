@@ -847,10 +847,15 @@ pub struct PdfCraftApp {
     /// Define's preferences (bring your own model; off by default).
     pub ai: AiPrefs,
     pub(crate) ai_cache: ai_define::AiCache,
+    /// The models Codex lists on this machine (its `models_cache.json`), read when Preferences ▸ AI
+    /// first shows the Codex model list. `None` until then; tests set it instead.
+    pub codex_models: Option<Vec<pdfcraft_ai::ModelChoice>>,
     /// The Define popup, while it is open.
     pub define_popup: Option<DefinePopup>,
     /// Where the user last dragged the Define popup; later lookups open there.
     pub define_pos: Option<egui::Pos2>,
+    /// Preferences opens scrolled to its AI section (the Define card's settings button).
+    pub(crate) prefs_show_ai: bool,
     pub redact_pages_draft: RedactPagesDraft,
     pub redact_search: RedactSearchDraft,
     pub hidden_draft: HiddenDraft,

@@ -14780,3 +14780,21 @@ fn ai_define_runs_a_custom_provider() {
     // It runs a program the caller names: never advertised as a harmless read.
     assert!(!def.read_only && def.destructive);
 }
+
+#[test]
+fn ai_models_lists_what_preferences_offers() {
+    let dir = workdir("ai-models");
+    let mut a = auto(&dir);
+    let claude = ok(&mut a, "ai_models", json!({ "provider": "claude" }));
+    let ids: Vec<&str> = claude["models"].as_array().unwrap().iter().map(|m| m["id"].as_str().unwrap()).collect();
+    assert_eq!(ids, ["haiku", "sonnet", "opus"]);
+    assert_eq!(claude["default"], "haiku");
+    // Codex's list is whatever its own cache on this machine holds; empty without one.
+    let codex = ok(&mut a, "ai_models", json!({ "provider": "codex" }));
+    assert!(codex["models"].is_array());
+    assert_eq!(codex["default"], "");
+    let custom = a.call("ai_models", &json!({ "provider": "custom" })).unwrap_err();
+    assert!(custom.to_string().contains("claude, codex"), "{custom}");
+    let def = tools().into_iter().find(|t| t.name == "ai_models").unwrap();
+    assert!(def.read_only, "it only reads a list");
+}

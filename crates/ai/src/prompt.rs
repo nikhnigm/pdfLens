@@ -22,7 +22,7 @@ pub struct Request {
 /// The prompt sent to the provider on stdin.
 pub fn prompt(req: &Request) -> String {
     format!(
-        "Give the meaning of the word or phrase \"{}\" as it is used in this sentence: \"{}\". Answer in {}, in one line of plain text, at most two short lines. No preamble, no quotes, no markdown.",
+        "Give the meaning of the word or phrase \"{}\" as it is used in this sentence: \"{}\". Answer in {}, in one line of plain text, at most two short lines. Start with the meaning itself: no preamble or label such as \"Here:\", no quotes, no markdown.",
         req.word, req.sentence, req.language
     )
 }
@@ -61,24 +61,28 @@ pub fn split_command_line(line: &str) -> Result<Vec<String>, AiError> {
     Ok(args)
 }
 
-/// The provider's answer, cleaned for the popup: code fences, blank lines, a "Meaning:" label and
-/// surrounding quotes removed, at most two lines and [`MAX_ANSWER`] characters.
+/// The provider's answer, cleaned for the popup: code fences, blank lines, a leading label
+/// ("Meaning:", "Definition:", "Here:") and surrounding quotes removed, the first letter made
+/// upper case after "Here:", at most two lines and [`MAX_ANSWER`] characters.
 pub fn tidy_answer(raw: &str) -> Result<String, AiError> {
     const QUOTES: &[char] = &['"', '\'', '\u{201C}', '\u{201D}', '\u{2018}', '\u{2019}'];
     let lines: Vec<&str> = raw.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with("```")).take(MAX_LINES).collect();
     let text = lines.join("\n");
     let lower = text.to_lowercase();
-    let text = ["meaning:", "definition:"]
-        .iter()
-        .find(|label| lower.starts_with(*label))
-        .and_then(|label| text.get(label.len()..))
-        .unwrap_or(&text)
-        .trim()
-        .trim_matches(QUOTES)
-        .trim();
+    let label = ["meaning:", "definition:", "here:"].iter().find(|label| lower.starts_with(*label));
+    let text = label.and_then(|label| text.get(label.len()..)).unwrap_or(&text).trim().trim_matches(QUOTES).trim();
     if text.is_empty() {
         return Err(AiError::Empty);
     }
+    // "Here: giving up…" reads "Giving up…" once the label is gone.
+    let capitalised;
+    let text = match (label, text.chars().next()) {
+        (Some(&"here:"), Some(first)) if first.is_lowercase() => {
+            capitalised = first.to_uppercase().chain(text.chars().skip(1)).collect::<String>();
+            capitalised.as_str()
+        }
+        _ => text,
+    };
     if text.chars().count() <= MAX_ANSWER {
         return Ok(text.to_owned());
     }
@@ -115,5 +119,16 @@ mod tests {
         assert_eq!(tidy_answer("one\n\ntwo\nthree\nfour").unwrap(), "one\ntwo");
         assert!(tidy_answer(&"a".repeat(1000)).unwrap().chars().count() <= 300);
         assert!(matches!(tidy_answer(" \n "), Err(AiError::Empty)));
+    }
+
+    #[test]
+    fn a_here_label_is_dropped_and_the_meaning_capitalised() {
+        assert_eq!(
+            tidy_answer("Here: giving up or no longer keeping something, in this case a law.").unwrap(),
+            "Giving up or no longer keeping something, in this case a law."
+        );
+        assert_eq!(tidy_answer("here: \"stopping\"").unwrap(), "Stopping");
+        assert_eq!(tidy_answer("Here is why").unwrap(), "Here is why", "only the label, not the word");
+        assert_eq!(tidy_answer("giving up").unwrap(), "giving up", "no label: left as written");
     }
 }

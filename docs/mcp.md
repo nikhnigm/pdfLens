@@ -43,7 +43,7 @@ Other MCP clients can use this bare-name configuration:
 ```
 
 Linux `.deb` and `.rpm` packages already install `/usr/bin/pdfcraft-cli`; those users
-can skip the source install. The [downloads list](../README.md#downloads) also includes
+can skip the source install. The [PdfCraft downloads list](https://github.com/storytold/pdfcraft#downloads) also includes
 standalone Linux CLI tarballs and a macOS CLI zip; unpack and copy the executable into
 a directory on the client's `PATH`. Installing does not start or register a server:
 MCP remains opt-in and uses stdio only.

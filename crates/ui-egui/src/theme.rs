@@ -62,6 +62,13 @@ pub struct Tokens {
     pub accent: Color32,
     pub accent_text: Color32,
     pub accent_soft: Color32,
+    /// Secondary icon buttons that stay out of the way until hovered (the Define card's grip,
+    /// close, copy and settings): lighter than `icon`, still 3:1 on `card`.
+    pub icon_quiet: Color32,
+    /// Something went well (a copy confirmed).
+    pub ok: Color32,
+    /// Something went wrong (an error's icon).
+    pub danger: Color32,
     pub field: Color32,
     pub badge_new: Color32,
     pub page_shadow: Color32,
@@ -90,6 +97,9 @@ impl Tokens {
                 accent: Color32::from_rgb(0x1B, 0x63, 0xE0),
                 accent_text: Color32::from_rgb(0x17, 0x55, 0xC4),
                 accent_soft: Color32::from_rgb(0xE3, 0xEC, 0xFD),
+                icon_quiet: Color32::from_rgb(0x8B, 0x8B, 0x93),
+                ok: Color32::from_rgb(0x1A, 0x73, 0x47),
+                danger: Color32::from_rgb(0xC4, 0x31, 0x4B),
                 field: Color32::from_rgb(0xFF, 0xFF, 0xFF),
                 badge_new: Color32::from_rgb(0x1B, 0x63, 0xE0),
                 page_shadow: Color32::from_black_alpha(34),
@@ -114,6 +124,9 @@ impl Tokens {
                 accent: Color32::from_rgb(0x4B, 0x8B, 0xF5),
                 accent_text: Color32::from_rgb(0x8C, 0xB6, 0xFA),
                 accent_soft: Color32::from_rgb(0x24, 0x36, 0x57),
+                icon_quiet: Color32::from_rgb(0x86, 0x86, 0x8E),
+                ok: Color32::from_rgb(0x5C, 0xC9, 0x8F),
+                danger: Color32::from_rgb(0xF0, 0x7A, 0x8C),
                 field: Color32::from_rgb(0x1E, 0x1E, 0x22),
                 badge_new: Color32::from_rgb(0x3D, 0x7D, 0xEE),
                 page_shadow: Color32::from_black_alpha(120),
