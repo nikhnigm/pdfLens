@@ -352,6 +352,7 @@ impl PdfCraftApp {
             redact_before: None,
             ai: AiPrefs::default(),
             ai_cache: Default::default(),
+            codex_models: None,
             define_popup: None,
             define_pos: None,
             prefs_show_ai: false,
