@@ -1,17 +1,16 @@
 # PdfLens app icon
 
-<img src="pdfcraft-small.svg" alt="PdfLens app icon: an ink L with an orange dot on a paper tile" width="128">
+<img src="pdfcraft-small.svg" alt="PdfLens app icon: a white L and dot on a deep red tile" width="128">
 
-**Mark:** an ink "L" (the corner of a page, and the L of Lens) with an orange dot where the eye
-reads. Flat shapes only, no gradients or text.
+**Mark:** a white "L" (the corner of a page, and the L of Lens) with a white dot where the eye reads,
+on a deep red tile. Flat shapes only, no gradients or text.
 
-**Palette:** exactly three colours.
+**Palette:** two colours.
 
 | Colour | Hex | Used for |
 |---|---|---|
-| Ink | `#17191e` | the L |
-| Signal orange | `#f0461e` | the dot |
-| Paper | `#f3f0ea` | the tile |
+| Deep red | `#c9340f` | the tile |
+| Paper | `#f3f0ea` | the L and the dot |
 
 **Tile:** `viewBox="0 0 100 100"`, a rounded square with `rx=22`; the mark sits at 68 % scale, offset 16.
 Windows and Linux icons use the full tile. macOS icons put it on Apple's grid (an 824 px body centred
