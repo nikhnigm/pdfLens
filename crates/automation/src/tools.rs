@@ -265,6 +265,11 @@ pub fn tools() -> Vec<ToolDef> {
                 "command": { "type": "string", "description": "For provider custom: the command line to run; it reads the prompt on stdin and prints the answer." },
                 "language": { "type": "string", "description": "Language of the answer. Default English." }
             }), &["word", "sentence"])),
+        t("ai_models", "List AI models", "The models Preferences ▸ AI offers for provider: Claude Code's aliases (haiku, sonnet, opus), or the models Codex lists in its own cache on this machine (<CODEX_HOME or ~/.codex>/models_cache.json; empty when Codex has never run here). Each has id (what ai_define's model takes), label and note. default is the model an empty choice means: haiku for claude, Codex's own setting (\"\") for codex. Reads no document and starts no program.")
+            .ro()
+            .with(schema(json!({
+                "provider": { "type": "string", "enum": ["claude", "codex"], "description": "Whose models to list." }
+            }), &["provider"])),
         t("text_word_count", "Word count", "Count Unicode words and characters on selected pages (default all), with totals and per-page counts. Table/code exclusions use PDF structure tags, not visual guesses; unclassified text is retained. Image exclusion removes Figure-tagged and invisible/OCR text. Does not run OCR. Copy permission is required. Fails rather than returning a partial total when a page cannot be read.")
             .ro()
             .cmd("file.word_count")

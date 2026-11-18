@@ -74,6 +74,7 @@ impl Automation {
             "text_extract" => self.text_extract(&a)?,
             "text_word_count" => self.text_word_count(&a)?,
             "ai_define" => self.ai_define(&a)?,
+            "ai_models" => self.ai_models(&a)?,
             "text_find" => self.text_find(&a)?,
             "text_replace" => self.text_replace(&a)?,
             "page_rotate" => {

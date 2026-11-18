@@ -1,4 +1,5 @@
-//! `ai_define`: the meaning of a word in its sentence, from the user's own model.
+//! `ai_define`: the meaning of a word in its sentence, from the user's own model. `ai_models`:
+//! the models Preferences ▸ AI offers for a provider.
 
 use super::error::{Result, ToolError, failed};
 use super::json::Args;
@@ -32,5 +33,18 @@ impl Automation {
             Request { word: word.trim().into(), sentence: a.str("sentence")?.into(), language: a.opt_str("language")?.unwrap_or("English").into() };
         let answer = define(&req, &cfg, None, &AtomicBool::new(false)).map_err(failed)?;
         Ok(json!({ "meaning": answer.text }))
+    }
+
+    /// The models Preferences ▸ AI lists for `provider`: Claude's aliases, or the models Codex's own
+    /// cache on this machine lists. `default` is what an empty model means for it.
+    pub(crate) fn ai_models(&self, a: &Args) -> Result<Value> {
+        let id = a.str("provider")?;
+        let (models, default) = match ProviderKind::from_id(id) {
+            Some(ProviderKind::Claude) => (pdfcraft_ai::claude_models(), ProviderConfig::default().model),
+            Some(ProviderKind::Codex) => (pdfcraft_ai::codex_models(), String::new()),
+            _ => return Err(ToolError::InvalidArgs(format!("provider {id:?} has no model list; use one of claude, codex"))),
+        };
+        let models: Vec<Value> = models.into_iter().map(|m| json!({ "id": m.id, "label": m.label, "note": m.note })).collect();
+        Ok(json!({ "models": models, "default": default }))
     }
 }

@@ -982,7 +982,9 @@ fn card_ai(ui: &mut egui::Ui, app: &mut PdfCraftApp, t: &Tokens, ctx: &mut PrefS
         });
         ui.add_space(AI_ROW_GAP);
     } else {
-        field(ui, ctx, tl!("Model"), &mut app.ai.provider.model, tl!("Leave empty for the provider's default"));
+        if ai_model_row(ui, app, ctx, t) {
+            field(ui, ctx, tl!("Model name"), &mut app.ai.provider.model, tl!("The exact name the provider knows"));
+        }
         field(ui, ctx, tl!("Program"), &mut app.ai.provider.program, tl!("Leave empty to find it on PATH"));
     }
     field(ui, ctx, tl!("Answer language"), &mut app.ai.language, "English");
@@ -1061,6 +1063,58 @@ fn ai_notice(ui: &mut egui::Ui, ctx: &mut PrefSearchContext, t: &Tokens) -> bool
         });
     });
     got_it
+}
+
+/// Preferences ▸ AI ▸ Model: a list of the provider's models. Claude offers its aliases; Codex
+/// offers "Codex default" (its own setting) and the models in its cache, read once. "Other…", or a
+/// saved model no list knows, adds a text field for any name. Returns whether that field shows.
+fn ai_model_row(ui: &mut egui::Ui, app: &mut PdfCraftApp, ctx: &mut PrefSearchContext, t: &Tokens) -> bool {
+    use pdfcraft_ai::{ModelChoice, ProviderKind};
+    let kind = app.ai.provider.kind;
+    let choices: Vec<ModelChoice> = if kind == ProviderKind::Codex {
+        let listed = app.codex_models.get_or_insert_with(pdfcraft_ai::codex_models).clone();
+        let default =
+            ModelChoice { id: String::new(), label: tl!("Codex default").to_owned(), note: tl!("The model in Codex's own settings").to_owned() };
+        std::iter::once(default).chain(listed).collect()
+    } else {
+        pdfcraft_ai::claude_models()
+    };
+    let other_id = egui::Id::unique(("ai-model-other", kind.id()));
+    let mut other = ui.data(|d| d.get_temp::<bool>(other_id)).unwrap_or(false);
+    let model = app.ai.provider.model.clone();
+    let listed = choices.iter().find(|c| c.id == model);
+    let typed = other || listed.is_none();
+    let selected = match listed {
+        Some(choice) if !typed => choice.label.clone(),
+        _ => tl!("Other…").to_owned(),
+    };
+    ai_row(ui, ctx, tl!("Model"), t, |ui, label| {
+        let width = ui.available_width().min(320.0);
+        let combo = craft_ui::ComboBox::from_id_salt(("ai-model", kind.id())).selected_text(selected).width(width).show_ui(ui, |ui| {
+            for choice in &choices {
+                let response = ui.selectable_label(!typed && choice.id == model, choice.label.as_str());
+                let response = if choice.note.is_empty() { response } else { response.on_hover_text(choice.note.as_str()) };
+                if response.clicked() {
+                    app.ai.provider.model = choice.id.clone();
+                    other = false;
+                    ui.close();
+                }
+            }
+            if ui.selectable_label(typed, tl!("Other…")).clicked() {
+                // From a listed model the field starts empty, ready for a name of the user's own;
+                // a name already typed stays.
+                if !typed {
+                    app.ai.provider.model.clear();
+                }
+                other = true;
+                ui.close();
+            }
+        });
+        // The visible label names the list for assistive technology and tests.
+        combo.response.labelled_by(label);
+    });
+    ui.data_mut(|d| d.insert_temp(other_id, other));
+    other || !choices.iter().any(|c| c.id == app.ai.provider.model)
 }
 
 /// Preferences dialog buttons: OK on the right. Returns true to close.

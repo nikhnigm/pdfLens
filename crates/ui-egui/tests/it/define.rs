@@ -328,3 +328,81 @@ fn ai_preferences_show_the_notice_until_got_it() {
     assert!(h.state().ai.notice_shown);
     assert!(h.query_by_label("Got it").is_none(), "acknowledged");
 }
+
+/// Preferences open on a tall window, so the AI card at the end is on screen, with Define on.
+fn preferences(kind: ProviderKind, codex: Vec<pdfcraft_ai::ModelChoice>) -> Harness<'static, PdfCraftApp> {
+    let mut h = Harness::builder().with_size(egui::vec2(1200.0, 3200.0)).build_eframe(move |_cc| {
+        let mut app = PdfCraftApp::new();
+        app.set_option("language", "en").unwrap();
+        app.ai.enabled = true;
+        app.ai.notice_shown = true;
+        app.ai.set_provider_kind(kind);
+        app.codex_models = Some(codex);
+        app.dialog = Some(Dialog::Preferences);
+        app
+    });
+    h.run_steps(6);
+    h
+}
+
+fn choose_model(h: &mut Harness<'static, PdfCraftApp>, item: &str) {
+    h.get_by_role_and_label(egui::accesskit::Role::ComboBox, "Model").click();
+    h.run_steps(3);
+    h.get_by_label(item).click();
+    h.run_steps(3);
+}
+
+#[test]
+fn claude_models_are_chosen_from_a_list() {
+    let mut h = preferences(ProviderKind::Claude, Vec::new());
+    assert_eq!(h.get_by_role_and_label(egui::accesskit::Role::ComboBox, "Model").value().as_deref(), Some("Haiku"));
+    assert!(h.query_by_role_and_label(egui::accesskit::Role::TextInput, "Model").is_none(), "no text field for a listed model");
+    choose_model(&mut h, "Sonnet");
+    assert_eq!(h.state().ai.provider.model, "sonnet");
+    choose_model(&mut h, "Opus");
+    assert_eq!(h.state().ai.provider.model, "opus");
+}
+
+#[test]
+fn codex_models_come_from_its_own_list() {
+    let codex = vec![
+        pdfcraft_ai::ModelChoice { id: "gpt-6-luna".into(), label: "GPT-6-Luna".into(), note: String::new() },
+        pdfcraft_ai::ModelChoice { id: "gpt-5.6-terra".into(), label: "GPT-5.6-Terra".into(), note: String::new() },
+    ];
+    let mut h = preferences(ProviderKind::Codex, codex);
+    assert_eq!(h.get_by_role_and_label(egui::accesskit::Role::ComboBox, "Model").value().as_deref(), Some("Codex default"));
+    choose_model(&mut h, "GPT-5.6-Terra");
+    assert_eq!(h.state().ai.provider.model, "gpt-5.6-terra");
+    choose_model(&mut h, "Codex default");
+    assert_eq!(h.state().ai.provider.model, "", "empty: Codex uses its own setting");
+}
+
+#[test]
+fn other_lets_any_model_name_be_typed() {
+    let mut h = preferences(ProviderKind::Claude, Vec::new());
+    choose_model(&mut h, "Other…");
+    h.get_by_role_and_label(egui::accesskit::Role::TextInput, "Model name").click();
+    h.run_steps(2);
+    h.get_by_role_and_label(egui::accesskit::Role::TextInput, "Model name").type_text("claude-sonnet-5-5");
+    h.run_steps(3);
+    assert_eq!(h.state().ai.provider.model, "claude-sonnet-5-5");
+    assert_eq!(h.get_by_role_and_label(egui::accesskit::Role::ComboBox, "Model").value().as_deref(), Some("Other…"));
+}
+
+/// A model saved by hand (one no list knows) still shows, in the text field, after a restart.
+#[test]
+fn an_unlisted_saved_model_shows_in_the_text_field() {
+    let mut h = Harness::builder().with_size(egui::vec2(1200.0, 3200.0)).build_eframe(|_cc| {
+        let mut app = PdfCraftApp::new();
+        app.set_option("language", "en").unwrap();
+        app.ai.enabled = true;
+        app.ai.notice_shown = true;
+        app.ai.provider.model = "my-model".into();
+        app.codex_models = Some(Vec::new());
+        app.dialog = Some(Dialog::Preferences);
+        app
+    });
+    h.run_steps(6);
+    assert_eq!(h.get_by_role_and_label(egui::accesskit::Role::ComboBox, "Model").value().as_deref(), Some("Other…"));
+    assert_eq!(h.get_by_role_and_label(egui::accesskit::Role::TextInput, "Model name").value().as_deref(), Some("my-model"));
+}
